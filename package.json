@@ -1,0 +1,21 @@
+{
+    "name": "maturity-models",
+    "version": "0.1.0",
+    "private": true,
+    "workspaces": [
+        "client",
+        "server"
+    ],
+    "scripts": {
+        "start": "concurrently \"yarn workspace maturity-models-server dev\" \"yarn workspace maturity-models-client start\"",
+        "build": "yarn workspace maturity-models-server build && yarn workspace maturity-models-client build",
+        "seed": "yarn workspace maturity-models-server seed"
+    },
+    "devDependencies": {
+        "concurrently": "^7.6.0"
+    },
+    "dependencies": {
+        "bcrypt": "^5.1.1",
+        "yarn": "^1.22.22"
+    }
+}
