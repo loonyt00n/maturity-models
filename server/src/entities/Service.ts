@@ -1,4 +1,3 @@
-// server/src/entities/Service.ts
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Activity } from './Activity';
 import { MeasurementEvaluation } from './MeasurementEvaluation';
@@ -15,10 +14,10 @@ export class Service {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name!: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   owner!: string;
 
   @Column({ type: 'text' })
@@ -27,7 +26,7 @@ export class Service {
   @Column({ type: 'varchar' })
   serviceType!: ServiceType;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   resourceLocation!: string | null;
 
   @ManyToOne(() => Activity, activity => activity.services, { nullable: true })

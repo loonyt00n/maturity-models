@@ -60,6 +60,7 @@ maturity-models/
 │   │   ├── repositories/     # Data access layer
 │   │   ├── routes/           # API routes
 │   │   ├── services/         # Business logic services
+│   │   ├── swagger/          # API Documentation
 │   │   ├── types/            # TypeScript types
 │   │   ├── utils/            # Utility functions
 │   │   ├── app.ts            # Express app setup
@@ -106,6 +107,7 @@ maturity-models/
 2. Access the application:
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:5000/api
+   - Backend API Documentation: http://localhost:5000/api-docs
 
 ## Default Users
 

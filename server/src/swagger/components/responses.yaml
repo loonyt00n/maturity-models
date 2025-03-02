@@ -1,0 +1,20 @@
+UnauthorizedError:
+  description: Access token is missing or invalid
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/Error'
+
+ForbiddenError:
+  description: User does not have required permissions
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/Error'
+
+NotFoundError:
+  description: The requested resource was not found
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/Error'

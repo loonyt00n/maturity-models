@@ -1,0 +1,23 @@
+User:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    username:
+      type: string
+    name:
+      type: string
+    email:
+      type: string
+      format: email
+      nullable: true
+    role:
+      type: string
+      enum: [admin, editor, viewer]
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time

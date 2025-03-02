@@ -6,17 +6,17 @@ export class Journey {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   owner: string;
 
   @Column({ type: 'text' })
   description: string;
 
   @Column({ type: 'text', nullable: true })
-  dependencyGraph!: string | null; // JSON string representing the dependency graph
+  dependencyGraph!: string | null;
 
   @OneToMany(() => Activity, activity => activity.journey, { cascade: true })
   activities: Activity[];
@@ -27,4 +27,3 @@ export class Journey {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

@@ -14,7 +14,7 @@ export class Measurement {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name: string;
 
   @Column({ type: 'text' })
@@ -23,7 +23,7 @@ export class Measurement {
   @Column({ type: 'varchar' })
   evidenceType: EvidenceType;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   sampleEvidence: string;
 
   @ManyToOne(() => MaturityModel, model => model.measurements)
@@ -38,4 +38,3 @@ export class Measurement {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

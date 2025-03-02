@@ -10,6 +10,9 @@ import { MeasurementEvaluation } from '../entities/MeasurementEvaluation';
 import { Campaign } from '../entities/Campaign';
 import { MaturityLevel } from '../entities/MaturityLevel';
 
+// Determine environment
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const AppDataSource = new DataSource({
   type: 'sqlite',
   database: path.resolve(__dirname, '../../database.sqlite'),
@@ -24,7 +27,6 @@ export const AppDataSource = new DataSource({
     Campaign,
     MaturityLevel
   ],
-  synchronize: true, // Set to false in production
-  logging: true,
+  synchronize: !isProduction, // Only sync in non-production environments
+  logging: !isProduction, // Only log in non-production environments
 });
-

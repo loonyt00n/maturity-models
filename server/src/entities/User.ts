@@ -11,19 +11,19 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true })
   username: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   password: string; // Hashed password
 
   @Column({ type: 'varchar', default: UserRole.VIEWER })
   role: UserRole;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   email: string;
 
   @CreateDateColumn()
@@ -32,4 +32,3 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

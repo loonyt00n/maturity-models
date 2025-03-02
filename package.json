@@ -12,10 +12,12 @@
         "seed": "yarn workspace maturity-models-server seed"
     },
     "devDependencies": {
+        "@types/swagger-ui-express": "^4.1.8",
         "concurrently": "^7.6.0"
     },
     "dependencies": {
         "bcrypt": "^5.1.1",
+        "swagger-ui-express": "^5.0.1",
         "yarn": "^1.22.22"
     }
 }

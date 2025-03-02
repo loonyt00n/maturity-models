@@ -24,7 +24,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (token && storedUser) {
         try {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
           // Validate the token with the server
           await api.get('/auth/validate');
         } catch (error) {

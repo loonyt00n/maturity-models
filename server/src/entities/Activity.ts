@@ -1,4 +1,3 @@
-// server/src/entities/Activity.ts
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Service } from './Service';
 import { Journey } from './Journey';
@@ -8,10 +7,10 @@ export class Activity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name!: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   owner!: string;
 
   @Column({ type: 'text' })

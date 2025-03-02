@@ -6,10 +6,10 @@ export class MaturityLevel {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'int' })
   level: number;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name: string;
 
   @Column({ type: 'text', nullable: true })

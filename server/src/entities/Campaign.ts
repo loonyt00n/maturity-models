@@ -7,16 +7,16 @@ export class Campaign {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name!: string;
 
   @Column({ type: 'text' })
   description!: string;
 
-  @Column()
+  @Column({ type: 'datetime' })
   startDate!: Date;
 
-  @Column({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   endDate!: Date | null;
 
   @ManyToOne(() => MaturityModel)

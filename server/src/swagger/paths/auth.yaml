@@ -1,0 +1,84 @@
+/auth/login:
+  post:
+    summary: Authenticate user and get token
+    tags: [Auth]
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LoginRequest'
+    responses:
+      200:
+        description: Authentication successful
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginResponse'
+      401:
+        description: Invalid credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      400:
+        description: Missing required fields
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/auth/register:
+  post:
+    summary: Register a new user
+    tags: [Auth]
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - username
+              - password
+              - name
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+                format: password
+              name:
+                type: string
+              email:
+                type: string
+                format: email
+              role:
+                type: string
+                enum: [admin, editor, viewer]
+    responses:
+      201:
+        description: User registered successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                user:
+                  $ref: '#/components/schemas/User'
+      400:
+        description: Missing required fields
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      409:
+        description: Username already exists
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'

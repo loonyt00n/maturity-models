@@ -40,4 +40,3 @@ export class MeasurementEvaluation {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

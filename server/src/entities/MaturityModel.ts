@@ -6,10 +6,10 @@ export class MaturityModel {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   owner: string;
 
   @Column({ type: 'text' })
@@ -24,4 +24,3 @@ export class MaturityModel {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-
