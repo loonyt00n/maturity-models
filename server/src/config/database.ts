@@ -9,6 +9,7 @@ import { Journey } from '../entities/Journey';
 import { MeasurementEvaluation } from '../entities/MeasurementEvaluation';
 import { Campaign } from '../entities/Campaign';
 import { MaturityLevel } from '../entities/MaturityLevel';
+import { EvaluationHistory } from '../entities/EvaluationHistory';
 
 // Determine environment
 const isProduction = process.env.NODE_ENV === 'production';
@@ -25,7 +26,8 @@ export const AppDataSource = new DataSource({
     Journey,
     MeasurementEvaluation,
     Campaign,
-    MaturityLevel
+    MaturityLevel,
+    EvaluationHistory
   ],
   synchronize: !isProduction, // Only sync in non-production environments
   logging: !isProduction, // Only log in non-production environments

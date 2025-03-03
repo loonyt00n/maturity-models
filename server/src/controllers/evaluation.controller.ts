@@ -1,10 +1,10 @@
-// server/src/controllers/evaluation.controller.ts
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { MeasurementEvaluation, EvaluationStatus } from '../entities/MeasurementEvaluation';
 import { Service } from '../entities/Service';
 import { Campaign } from '../entities/Campaign';
 import { Measurement } from '../entities/Measurement';
+import { createEvaluationHistory, getEvaluationHistory } from '../services/evaluationHistory.service';
 
 // Get maturity level distribution
 export const getMaturityLevelDistribution = async (req: Request, res: Response) => {
@@ -86,6 +86,17 @@ export const getEvaluationById = async (req: Request, res: Response) => {
   }
 };
 
+// Get evaluation history
+export const getEvaluationHistoryById = async (req: Request, res: Response) => {
+  try {
+    const history = await getEvaluationHistory(req.params.id);
+    return res.json(history);
+  } catch (error) {
+    console.error('Error fetching evaluation history:', error);
+    return res.status(500).json({ message: 'Error fetching evaluation history' });
+  }
+};
+
 // Submit evidence for evaluation (admin/editor)
 export const submitEvidence = async (req: Request, res: Response) => {
   try {
@@ -104,11 +115,25 @@ export const submitEvidence = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Evaluation not found' });
     }
     
+    // Store old status for history
+    const oldStatus = evaluation.status;
+    
     evaluation.evidenceLocation = evidenceLocation;
     evaluation.notes = notes || evaluation.notes;
     evaluation.status = EvaluationStatus.EVIDENCE_SUBMITTED;
     
     await evaluationRepository.save(evaluation);
+    
+    // Create history record if user is available
+    if (req.user) {
+      await createEvaluationHistory(
+        evaluation,
+        oldStatus,
+        EvaluationStatus.EVIDENCE_SUBMITTED,
+        req.user,
+        notes
+      );
+    }
     
     return res.json(evaluation);
   } catch (error) {
@@ -135,10 +160,25 @@ export const updateEvaluationStatus = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Evaluation not found' });
     }
     
+    // Store the old status before updating
+    const oldStatus = evaluation.status;
+    
+    // Update the status
     evaluation.status = status as EvaluationStatus;
     if (notes) evaluation.notes = notes;
     
     await evaluationRepository.save(evaluation);
+    
+    // Create a history record, only if the user is defined
+    if (req.user) {
+      await createEvaluationHistory(
+        evaluation,
+        oldStatus,
+        status as EvaluationStatus,
+        req.user,
+        notes
+      );
+    }
     
     return res.json(evaluation);
   } catch (error) {
@@ -179,13 +219,20 @@ export const createOrUpdateEvaluation = async (req: Request, res: Response) => {
       }
     });
     
+    let oldStatus = EvaluationStatus.NOT_IMPLEMENTED;
+    let isNewEvaluation = false;
+    
     if (evaluation) {
+      // Save old status for history
+      oldStatus = evaluation.status;
+      
       // Update existing evaluation
       evaluation.status = status as EvaluationStatus;
       if (evidenceLocation !== undefined) evaluation.evidenceLocation = evidenceLocation;
       if (notes !== undefined) evaluation.notes = notes;
     } else {
       // Create new evaluation using constructor approach
+      isNewEvaluation = true;
       evaluation = new MeasurementEvaluation();
       evaluation.service = service;
       evaluation.measurement = measurement;
@@ -195,9 +242,20 @@ export const createOrUpdateEvaluation = async (req: Request, res: Response) => {
       evaluation.notes = notes;
     }
     
-    await evaluationRepository.save(evaluation);
+    const savedEvaluation = await evaluationRepository.save(evaluation);
     
-    return res.status(evaluation ? 200 : 201).json(evaluation);
+    // Create history record if user is available and status changed or new evaluation
+    if (req.user && (oldStatus !== status as EvaluationStatus || isNewEvaluation)) {
+      await createEvaluationHistory(
+        savedEvaluation,
+        oldStatus,
+        status as EvaluationStatus,
+        req.user,
+        notes
+      );
+    }
+    
+    return res.status(isNewEvaluation ? 201 : 200).json(savedEvaluation);
   } catch (error) {
     console.error('Error creating/updating evaluation:', error);
     return res.status(500).json({ message: 'Error creating/updating evaluation' });

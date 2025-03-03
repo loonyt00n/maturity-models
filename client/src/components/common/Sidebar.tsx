@@ -1,3 +1,4 @@
+// src/components/common/Sidebar.tsx
 import React from 'react';
 import { 
   Box, 
@@ -29,8 +30,11 @@ const Sidebar: React.FC = () => {
   const isAdmin = hasRole([UserRole.ADMIN]);
   const isEditor = hasRole([UserRole.ADMIN, UserRole.EDITOR]);
   
+  // Move all color mode hooks to the top level
   const bgColor = useColorModeValue('white', 'gray.800');
   const activeColor = useColorModeValue('blue.500', 'blue.300');
+  const activeBackground = useColorModeValue('blue.50', 'blue.900');
+  const hoverBackground = useColorModeValue('gray.100', 'gray.700');
   
   const NavItem = ({ icon, label, to }: { icon: any; label: string; to: string }) => {
     const isActive = pathname === to || pathname.startsWith(`${to}/`);
@@ -44,9 +48,9 @@ const Sidebar: React.FC = () => {
         alignItems="center"
         cursor="pointer"
         color={isActive ? activeColor : 'inherit'}
-        bg={isActive ? useColorModeValue('blue.50', 'blue.900') : 'transparent'}
+        bg={isActive ? activeBackground : 'transparent'}
         _hover={{
-          bg: useColorModeValue('gray.100', 'gray.700'),
+          bg: hoverBackground,
         }}
       >
         <Icon as={icon} fontSize="18px" mr={3} />
@@ -110,4 +114,3 @@ const Sidebar: React.FC = () => {
 };
 
 export default Sidebar;
-

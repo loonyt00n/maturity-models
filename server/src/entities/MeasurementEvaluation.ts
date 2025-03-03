@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Measurement } from './Measurement';
 import { Service } from './Service';
 import { Campaign } from './Campaign';
+import { EvaluationHistory } from './EvaluationHistory';
 
 export enum EvaluationStatus {
   NOT_IMPLEMENTED = 'not_implemented',
@@ -33,6 +34,12 @@ export class MeasurementEvaluation {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  @Column({ type: 'text', nullable: true })
+  validationReport: string;
+
+  @OneToMany(() => EvaluationHistory, history => history.evaluation, { cascade: true })
+  history: EvaluationHistory[];
 
   @CreateDateColumn()
   createdAt: Date;

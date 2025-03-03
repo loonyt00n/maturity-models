@@ -19,6 +19,7 @@ const schemaFiles = [
   'schemas/journey.yaml',
   'schemas/campaign.yaml',
   'schemas/evaluation.yaml',
+  'schemas/evaluationHistory.yaml', // Add the evaluationHistory schema
   'schemas/auth.yaml',
   'schemas/error.yaml'
 ];
@@ -27,6 +28,7 @@ const pathFiles = [
   'paths/auth.yaml',
   'paths/users.yaml',
   'paths/maturityModels.yaml',
+  'paths/measurements.yaml',
   'paths/services.yaml',
   'paths/activities.yaml',
   'paths/journeys.yaml',
@@ -113,6 +115,10 @@ export const swaggerSpec = {
     {
       name: 'Maturity Models',
       description: 'Maturity model management endpoints',
+    },
+    {
+      name: 'Measurements',
+      description: 'Measurement management endpoints',
     },
     {
       name: 'Services',

@@ -48,6 +48,33 @@
       404:
         $ref: '#/components/responses/NotFoundError'
 
+/evaluations/{id}/history:
+  get:
+    summary: Get evaluation history
+    tags: [Evaluations]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Evaluation history records
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/EvaluationHistory'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
 /evaluations/{id}/evidence:
   post:
     summary: Submit evidence for evaluation

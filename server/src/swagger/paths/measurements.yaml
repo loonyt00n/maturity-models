@@ -1,0 +1,150 @@
+# Contains all API path definitions for the measurements resource
+
+/measurements:
+  post:
+    summary: Create a new measurement
+    tags: [Measurements]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - description
+              - evidenceType
+              - maturityModelId
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              evidenceType:
+                type: string
+                enum: [url, document, image, text]
+              sampleEvidence:
+                type: string
+              maturityModelId:
+                type: string
+                format: uuid
+    responses:
+      201:
+        description: Measurement created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Measurement'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        description: Maturity model not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/measurements/{id}:
+  get:
+    summary: Get measurement by ID
+    tags: [Measurements]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Measurement details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Measurement'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  put:
+    summary: Update a measurement
+    tags: [Measurements]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              evidenceType:
+                type: string
+                enum: [url, document, image, text]
+              sampleEvidence:
+                type: string
+    responses:
+      200:
+        description: Measurement updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Measurement'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  delete:
+    summary: Delete a measurement
+    tags: [Measurements]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      204:
+        description: Measurement deleted successfully
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'

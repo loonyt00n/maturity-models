@@ -4,6 +4,7 @@ import { UserRole } from '../entities/User';
 import {
   getMaturityLevelDistribution,
   getEvaluationById,
+  getEvaluationHistoryById,
   submitEvidence,
   updateEvaluationStatus,
   createOrUpdateEvaluation
@@ -16,6 +17,9 @@ router.get('/distribution', getMaturityLevelDistribution);
 
 // Get evaluation by ID
 router.get('/:id', getEvaluationById);
+
+// Get evaluation history
+router.get('/:id/history', getEvaluationHistoryById);
 
 // Submit evidence (admin/editor)
 router.post('/:id/evidence', authorize([UserRole.ADMIN, UserRole.EDITOR]), submitEvidence);

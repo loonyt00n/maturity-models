@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -13,7 +12,8 @@ import activityRoutes from './routes/activity.routes';
 import journeyRoutes from './routes/journey.routes';
 import campaignRoutes from './routes/campaign.routes';
 import evaluationRoutes from './routes/evaluation.routes';
-import adminRoutes from './routes/admin.routes'; // Add this import
+import adminRoutes from './routes/admin.routes';
+import measurementRoutes from './routes/measurement.routes'; // Import the new measurement routes
 import { errorHandler } from './middlewares/errorHandler';
 import { authenticateJwt } from './middlewares/auth';
 
@@ -48,7 +48,8 @@ app.use('/api/activities', authenticateJwt, activityRoutes);
 app.use('/api/journeys', authenticateJwt, journeyRoutes);
 app.use('/api/campaigns', authenticateJwt, campaignRoutes);
 app.use('/api/evaluations', authenticateJwt, evaluationRoutes);
-app.use('/api/admin', authenticateJwt, adminRoutes); // Add admin routes
+app.use('/api/admin', authenticateJwt, adminRoutes);
+app.use('/api/measurements', authenticateJwt, measurementRoutes); // Register the new measurement routes
 
 // 404 Handler - Add before error handler
 app.use((req, res) => {

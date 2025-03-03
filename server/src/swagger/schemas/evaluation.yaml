@@ -1,3 +1,4 @@
+
 MeasurementEvaluation:
   type: object
   properties:
@@ -27,6 +28,12 @@ MeasurementEvaluation:
     notes:
       type: string
       nullable: true
+    measurement:
+      $ref: '#/components/schemas/Measurement'
+    service:
+      $ref: '#/components/schemas/Service'
+    campaign:
+      $ref: '#/components/schemas/Campaign'
     createdAt:
       type: string
       format: date-time
