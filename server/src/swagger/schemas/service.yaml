@@ -1,0 +1,28 @@
+Service:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    owner:
+      type: string
+    description:
+      type: string
+    serviceType:
+      type: string
+      enum: [api_service, ui_application, workflow, application_module]
+    resourceLocation:
+      type: string
+      nullable: true
+    activityId:
+      type: string
+      format: uuid
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time

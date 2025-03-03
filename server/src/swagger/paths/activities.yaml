@@ -1,0 +1,262 @@
+/activities:
+  get:
+    summary: Get all activities
+    tags: [Activities]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of all activities
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Activity'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+  
+  post:
+    summary: Create a new activity
+    tags: [Activities]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - owner
+              - description
+            properties:
+              name:
+                type: string
+              owner:
+                type: string
+              description:
+                type: string
+              dependencyGraph:
+                type: object
+              journeyId:
+                type: string
+                format: uuid
+    responses:
+      201:
+        description: Activity created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activity'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        description: Journey not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/activities/{id}:
+  get:
+    summary: Get activity by ID
+    tags: [Activities]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Activity details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activity'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  put:
+    summary: Update an activity
+    tags: [Activities]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              owner:
+                type: string
+              description:
+                type: string
+              dependencyGraph:
+                type: object
+              journeyId:
+                type: string
+                format: uuid
+    responses:
+      200:
+        description: Activity updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activity'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        description: Activity or Journey not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+  
+  delete:
+    summary: Delete an activity
+    tags: [Activities]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      204:
+        description: Activity deleted successfully
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
+/activities/{id}/services:
+  get:
+    summary: Get activity services
+    tags: [Activities]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: List of services for the activity
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Service'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
+/activities/{id}/journey:
+  get:
+    summary: Get activity journey
+    tags: [Activities]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Journey details for the activity
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Journey'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        description: Activity or Journey not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/activities/{id}/maturity-summaries:
+  get:
+    summary: Get activity maturity summaries
+    tags: [Activities]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Maturity summaries for the activity
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  maturityModelId:
+                    type: string
+                    format: uuid
+                  maturityModelName:
+                    type: string
+                  maturityLevel:
+                    type: integer
+                  percentage:
+                    type: number
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'

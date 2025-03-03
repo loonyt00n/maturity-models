@@ -1,0 +1,25 @@
+Measurement:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    description:
+      type: string
+    evidenceType:
+      type: string
+      enum: [url, document, image, text]
+    sampleEvidence:
+      type: string
+      nullable: true
+    maturityModelId:
+      type: string
+      format: uuid
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time

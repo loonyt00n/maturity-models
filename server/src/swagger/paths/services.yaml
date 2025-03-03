@@ -1,0 +1,216 @@
+/services:
+  get:
+    summary: Get all services
+    tags: [Services]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of all services
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Service'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+  
+  post:
+    summary: Create a new service
+    tags: [Services]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - owner
+              - description
+              - serviceType
+            properties:
+              name:
+                type: string
+              owner:
+                type: string
+              description:
+                type: string
+              serviceType:
+                type: string
+                enum: [api_service, ui_application, workflow, application_module]
+              resourceLocation:
+                type: string
+              activityId:
+                type: string
+                format: uuid
+    responses:
+      201:
+        description: Service created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Service'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        description: Activity not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/services/{id}:
+  get:
+    summary: Get service by ID
+    tags: [Services]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Service details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Service'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  put:
+    summary: Update a service
+    tags: [Services]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              owner:
+                type: string
+              description:
+                type: string
+              serviceType:
+                type: string
+                enum: [api_service, ui_application, workflow, application_module]
+              resourceLocation:
+                type: string
+              activityId:
+                type: string
+                format: uuid
+    responses:
+      200:
+        description: Service updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Service'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        description: Service or Activity not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+  
+  delete:
+    summary: Delete a service
+    tags: [Services]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      204:
+        description: Service deleted successfully
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
+/services/{id}/campaigns:
+  get:
+    summary: Get service campaigns and evaluations
+    tags: [Services]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: List of campaigns and evaluations for the service
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  campaign:
+                    $ref: '#/components/schemas/Campaign'
+                  maturityModel:
+                    $ref: '#/components/schemas/MaturityModel'
+                  maturityLevel:
+                    type: integer
+                  percentage:
+                    type: number
+                  evaluations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MeasurementEvaluation'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'

@@ -1,0 +1,287 @@
+/campaigns:
+  get:
+    summary: Get all campaigns
+    tags: [Campaigns]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of all campaigns
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Campaign'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+  
+  post:
+    summary: Create a new campaign
+    tags: [Campaigns]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - description
+              - startDate
+              - maturityModelId
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              startDate:
+                type: string
+                format: date
+              endDate:
+                type: string
+                format: date
+              maturityModelId:
+                type: string
+                format: uuid
+    responses:
+      201:
+        description: Campaign created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        description: Maturity model not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+
+/campaigns/{id}:
+  get:
+    summary: Get campaign by ID
+    tags: [Campaigns]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Campaign details with maturity model
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                campaign:
+                  $ref: '#/components/schemas/Campaign'
+                maturityModel:
+                  $ref: '#/components/schemas/MaturityModel'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  put:
+    summary: Update a campaign
+    tags: [Campaigns]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              startDate:
+                type: string
+                format: date
+              endDate:
+                type: string
+                format: date
+              maturityModelId:
+                type: string
+                format: uuid
+    responses:
+      200:
+        description: Campaign updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        description: Campaign or Maturity model not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+  
+  delete:
+    summary: Delete a campaign
+    tags: [Campaigns]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      204:
+        description: Campaign deleted successfully
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
+/campaigns/{id}/results:
+  get:
+    summary: Get campaign results
+    tags: [Campaigns]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Results of the campaign
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                journeyResults:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      journeyId:
+                        type: string
+                        format: uuid
+                      journeyName:
+                        type: string
+                      maturityLevel:
+                        type: integer
+                      activityResults:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            activityId:
+                              type: string
+                              format: uuid
+                            activityName:
+                              type: string
+                            maturityLevel:
+                              type: integer
+                            serviceResults:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  serviceId:
+                                    type: string
+                                    format: uuid
+                                  serviceName:
+                                    type: string
+                                  maturityLevel:
+                                    type: integer
+                                  percentage:
+                                    type: number
+                activityResults:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      activityId:
+                        type: string
+                        format: uuid
+                      activityName:
+                        type: string
+                      maturityLevel:
+                        type: integer
+                      serviceResults:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            serviceId:
+                              type: string
+                              format: uuid
+                            serviceName:
+                              type: string
+                            maturityLevel:
+                              type: integer
+                            percentage:
+                              type: number
+                serviceResults:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      serviceId:
+                        type: string
+                        format: uuid
+                      serviceName:
+                        type: string
+                      maturityLevel:
+                        type: integer
+                      percentage:
+                        type: number
+                overallLevel:
+                  type: integer
+                overallPercentage:
+                  type: number
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'

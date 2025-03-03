@@ -1,0 +1,35 @@
+MeasurementEvaluation:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    measurementId:
+      type: string
+      format: uuid
+    serviceId:
+      type: string
+      format: uuid
+    campaignId:
+      type: string
+      format: uuid
+    status:
+      type: string
+      enum:
+        - not_implemented
+        - evidence_submitted
+        - validating_evidence
+        - evidence_rejected
+        - implemented
+    evidenceLocation:
+      type: string
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time

@@ -1,0 +1,235 @@
+/maturity-models:
+  get:
+    summary: Get all maturity models
+    tags: [Maturity Models]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of all maturity models
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/MaturityModel'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+  
+  post:
+    summary: Create a new maturity model
+    tags: [Maturity Models]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - owner
+              - description
+            properties:
+              name:
+                type: string
+              owner:
+                type: string
+              description:
+                type: string
+              measurements:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    evidenceType:
+                      type: string
+                      enum: [url, document, image, text]
+                    sampleEvidence:
+                      type: string
+    responses:
+      201:
+        description: Maturity model created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaturityModel'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+
+/maturity-models/{id}:
+  get:
+    summary: Get maturity model by ID
+    tags: [Maturity Models]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Maturity model details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaturityModel'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  put:
+    summary: Update a maturity model
+    tags: [Maturity Models]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              owner:
+                type: string
+              description:
+                type: string
+    responses:
+      200:
+        description: Maturity model updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaturityModel'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  delete:
+    summary: Delete a maturity model
+    tags: [Maturity Models]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      204:
+        description: Maturity model deleted successfully
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
+/maturity-models/{id}/levels:
+  get:
+    summary: Get maturity levels for a model
+    tags: [Maturity Models]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: List of maturity levels for the model
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  level:
+                    type: integer
+                  name:
+                    type: string
+                  description:
+                    type: string
+                    nullable: true
+                  minPercentage:
+                    type: number
+                  maxPercentage:
+                    type: number
+                  maturityModelId:
+                    type: string
+                    format: uuid
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
+/maturity-models/{id}/campaigns:
+  get:
+    summary: Get campaigns for a maturity model
+    tags: [Maturity Models]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: List of campaigns for the maturity model
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Campaign'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'

@@ -1,0 +1,22 @@
+MaturityModel:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    owner:
+      type: string
+    description:
+      type: string
+    measurements:
+      type: array
+      items:
+        $ref: '#/components/schemas/Measurement'
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time

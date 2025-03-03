@@ -12,26 +12,26 @@ const loadYamlFile = (filePath: string) => {
 // Define paths to YAML files
 const schemaFiles = [
   'schemas/user.yaml',
-  // 'schemas/maturityModel.yaml',
-  // 'schemas/measurement.yaml',
-  // 'schemas/service.yaml',
-  // 'schemas/activity.yaml',
-  // 'schemas/journey.yaml',
-  // 'schemas/campaign.yaml',
-  // 'schemas/evaluation.yaml',
+  'schemas/maturityModel.yaml',
+  'schemas/measurement.yaml',
+  'schemas/service.yaml',
+  'schemas/activity.yaml',
+  'schemas/journey.yaml',
+  'schemas/campaign.yaml',
+  'schemas/evaluation.yaml',
   'schemas/auth.yaml',
   'schemas/error.yaml'
 ];
 
 const pathFiles = [
   'paths/auth.yaml',
-  // 'paths/users.yaml',
-  // 'paths/maturityModels.yaml',
-  // 'paths/services.yaml',
-  // 'paths/activities.yaml',
-  // 'paths/journeys.yaml',
-  // 'paths/campaigns.yaml',
-  // 'paths/evaluations.yaml'
+  'paths/users.yaml',
+  'paths/maturityModels.yaml',
+  'paths/services.yaml',
+  'paths/activities.yaml',
+  'paths/journeys.yaml',
+  'paths/campaigns.yaml',
+  'paths/evaluations.yaml'
 ];
 
 const componentFiles = [

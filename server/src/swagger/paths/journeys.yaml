@@ -1,0 +1,224 @@
+/journeys:
+  get:
+    summary: Get all journeys
+    tags: [Journeys]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of all journeys
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Journey'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+  
+  post:
+    summary: Create a new journey
+    tags: [Journeys]
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+              - owner
+              - description
+            properties:
+              name:
+                type: string
+              owner:
+                type: string
+              description:
+                type: string
+              dependencyGraph:
+                type: object
+    responses:
+      201:
+        description: Journey created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Journey'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+
+/journeys/{id}:
+  get:
+    summary: Get journey by ID
+    tags: [Journeys]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Journey details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Journey'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  put:
+    summary: Update a journey
+    tags: [Journeys]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              owner:
+                type: string
+              description:
+                type: string
+              dependencyGraph:
+                type: object
+    responses:
+      200:
+        description: Journey updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Journey'
+      400:
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+  
+  delete:
+    summary: Delete a journey
+    tags: [Journeys]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      204:
+        description: Journey deleted successfully
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
+/journeys/{id}/activities:
+  get:
+    summary: Get journey activities with services
+    tags: [Journeys]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: List of activities with services for the journey
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/Activity'
+                  - type: object
+                    properties:
+                      services:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Service'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
+
+/journeys/{id}/maturity-summaries:
+  get:
+    summary: Get journey maturity summaries
+    tags: [Journeys]
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      200:
+        description: Maturity summaries for the journey
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  maturityModelId:
+                    type: string
+                    format: uuid
+                  maturityModelName:
+                    type: string
+                  maturityLevel:
+                    type: integer
+                  percentage:
+                    type: number
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      404:
+        $ref: '#/components/responses/NotFoundError'
