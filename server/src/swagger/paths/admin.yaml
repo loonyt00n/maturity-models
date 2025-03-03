@@ -1,0 +1,110 @@
+
+/admin/stats:
+  get:
+    summary: Get system statistics
+    tags: [Admin]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: System statistics
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userCount:
+                  type: integer
+                maturityModelCount:
+                  type: integer
+                serviceCount:
+                  type: integer
+                activityCount:
+                  type: integer
+                journeyCount:
+                  type: integer
+                campaignCount:
+                  type: integer
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+
+/admin/recent-users:
+  get:
+    summary: Get recently added users
+    tags: [Admin]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of recent users
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+
+/admin/users:
+  get:
+    summary: Get all users
+    tags: [Admin]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: List of all users
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'
+
+/admin/distributions:
+  get:
+    summary: Get role and maturity level distributions
+    tags: [Admin]
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Distribution data for roles and maturity levels
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roleDistribution:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      value:
+                        type: integer
+                maturityDistribution:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      level:
+                        type: integer
+                      count:
+                        type: integer
+                      percentage:
+                        type: number
+      401:
+        $ref: '#/components/responses/UnauthorizedError'
+      403:
+        $ref: '#/components/responses/ForbiddenError'

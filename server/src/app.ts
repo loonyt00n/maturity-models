@@ -1,3 +1,4 @@
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -12,6 +13,7 @@ import activityRoutes from './routes/activity.routes';
 import journeyRoutes from './routes/journey.routes';
 import campaignRoutes from './routes/campaign.routes';
 import evaluationRoutes from './routes/evaluation.routes';
+import adminRoutes from './routes/admin.routes'; // Add this import
 import { errorHandler } from './middlewares/errorHandler';
 import { authenticateJwt } from './middlewares/auth';
 
@@ -31,7 +33,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   },
 }));
 
-// Serve swagger.json
+// Serve swagger json
 app.get('/swagger.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
@@ -46,6 +48,7 @@ app.use('/api/activities', authenticateJwt, activityRoutes);
 app.use('/api/journeys', authenticateJwt, journeyRoutes);
 app.use('/api/campaigns', authenticateJwt, campaignRoutes);
 app.use('/api/evaluations', authenticateJwt, evaluationRoutes);
+app.use('/api/admin', authenticateJwt, adminRoutes); // Add admin routes
 
 // 404 Handler - Add before error handler
 app.use((req, res) => {

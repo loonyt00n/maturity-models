@@ -100,7 +100,7 @@ const CampaignOverviewTab: React.FC<CampaignOverviewTabProps> = ({
         >
           <StatLabel>Overall Maturity</StatLabel>
           <StatNumber>Level {results.overallLevel}</StatNumber>
-          <StatHelpText>{results.overallPercentage}% Complete</StatHelpText>
+          <StatHelpText>{results.overallPercentage.toFixed(1)}% Complete</StatHelpText>
           <Progress 
             value={results.overallPercentage} 
             colorScheme={getMaturityLevelColor(results.overallLevel)}

@@ -1,3 +1,5 @@
+// client/src/pages/catalog/MaturityModelsTab.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -26,12 +28,15 @@ import {
   Input,
   Textarea,
   VStack,
-  useToast
+  useToast,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
 import api from '../../api/api';
-import { MaturityModel, EvidenceType } from '../../models';
+import { MaturityModel } from '../../models';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../models';
 
@@ -47,7 +52,9 @@ const MaturityModelsTab: React.FC<MaturityModelsTabProps> = ({
   const [maturityModels, setMaturityModels] = useState<MaturityModel[]>([]);
   const [filteredModels, setFilteredModels] = useState<MaturityModel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<MaturityModel | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { hasRole } = useAuth();
@@ -56,47 +63,6 @@ const MaturityModelsTab: React.FC<MaturityModelsTabProps> = ({
   const isAdmin = hasRole([UserRole.ADMIN]);
   
   useEffect(() => {
-    const fetchMaturityModels = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get<MaturityModel[]>('/maturity-models');
-        setMaturityModels(response.data);
-      } catch (error) {
-        console.error('Error fetching maturity models:', error);
-        // Use mock data for the prototype
-        setMaturityModels([
-          {
-            id: '1',
-            name: 'Operational Excellence Maturity Model',
-            owner: 'Administrator',
-            description: 'A model to assess operational excellence capabilities',
-            measurements: [
-              {
-                id: '1',
-                name: 'Has centralized logging',
-                description: 'The service must implement centralized logging for all components',
-                evidenceType: EvidenceType.URL,
-                sampleEvidence: 'https://logs.example.com/dashboard',
-                maturityModelId: '1'
-              },
-              {
-                id: '2',
-                name: 'Has infrastructure metrics published',
-                description: 'The service must publish infrastructure metrics to central monitoring',
-                evidenceType: EvidenceType.URL,
-                sampleEvidence: 'https://metrics.example.com/dashboard',
-                maturityModelId: '1'
-              }
-            ],
-            createdAt: '2023-01-01T00:00:00.000Z',
-            updatedAt: '2023-01-01T00:00:00.000Z'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchMaturityModels();
   }, [refreshTrigger]);
   
@@ -116,6 +82,21 @@ const MaturityModelsTab: React.FC<MaturityModelsTabProps> = ({
     }
   }, [searchTerm, maturityModels]);
   
+  const fetchMaturityModels = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get<MaturityModel[]>('/maturity-models');
+      setMaturityModels(response.data);
+      setFilteredModels(response.data);
+    } catch (error: any) {
+      console.error('Error fetching maturity models:', error);
+      setError(error.response?.data?.message || 'Failed to fetch maturity models. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleAddNewClick = () => {
     setSelectedModel(null);
     onOpen();
@@ -128,19 +109,82 @@ const MaturityModelsTab: React.FC<MaturityModelsTabProps> = ({
   
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormLoading(true);
     
-    // Get form data and submit to API
-    // In a real app, this would save the model
-    
-    toast({
-      title: selectedModel ? 'Maturity Model updated' : 'Maturity Model created',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    
-    onClose();
+    try {
+      const formData = new FormData(e.target as HTMLFormElement);
+      
+      const modelData = {
+        name: formData.get('name') as string,
+        owner: formData.get('owner') as string,
+        description: formData.get('description') as string
+      };
+      
+      if (selectedModel) {
+        // Update existing model
+        const response = await api.put<MaturityModel>(`/maturity-models/${selectedModel.id}`, modelData);
+        
+        setMaturityModels(prevModels =>
+          prevModels.map(model => model.id === selectedModel.id ? response.data : model)
+        );
+        
+        toast({
+          title: 'Maturity Model updated',
+          description: `${modelData.name} has been updated successfully.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        // Create new model
+        const response = await api.post<MaturityModel>('/maturity-models', modelData);
+        
+        setMaturityModels(prevModels => [...prevModels, response.data]);
+        
+        toast({
+          title: 'Maturity Model created',
+          description: `${modelData.name} has been created successfully.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+      
+      onClose();
+    } catch (error: any) {
+      console.error('Error saving maturity model:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to save maturity model. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setFormLoading(false);
+    }
   };
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" p={8}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading maturity models...</Text>
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Box>
+        <Alert status="error" mb={6}>
+          <AlertIcon />
+          {error}
+        </Alert>
+        <Button onClick={fetchMaturityModels}>Try Again</Button>
+      </Box>
+    );
+  }
   
   return (
     <Box>
@@ -236,41 +280,61 @@ const MaturityModelsTab: React.FC<MaturityModelsTabProps> = ({
           
           <form onSubmit={handleFormSubmit}>
             <ModalBody>
+              {formLoading && (
+                <Alert status="info" mb={4}>
+                  <Spinner size="sm" mr={2} />
+                  {selectedModel ? 'Updating maturity model...' : 'Creating maturity model...'}
+                </Alert>
+              )}
+              
               <VStack spacing={4}>
                 <FormControl isRequired>
                   <FormLabel>Name</FormLabel>
                   <Input 
+                    name="name"
                     defaultValue={selectedModel?.name || ''}
                     placeholder="Enter maturity model name"
+                    isDisabled={formLoading}
                   />
                 </FormControl>
                 
                 <FormControl isRequired>
                   <FormLabel>Owner</FormLabel>
                   <Input 
+                    name="owner"
                     defaultValue={selectedModel?.owner || ''}
                     placeholder="Enter owner name"
+                    isDisabled={formLoading}
                   />
                 </FormControl>
                 
                 <FormControl isRequired>
                   <FormLabel>Description</FormLabel>
                   <Textarea 
+                    name="description"
                     defaultValue={selectedModel?.description || ''}
                     placeholder="Enter description"
                     rows={4}
+                    isDisabled={formLoading}
                   />
                 </FormControl>
-                
-                {/* In a real app, you would add controls for measurements here */}
               </VStack>
             </ModalBody>
             
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button 
+                variant="ghost" 
+                mr={3} 
+                onClick={onClose}
+                isDisabled={formLoading}
+              >
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button 
+                colorScheme="blue" 
+                type="submit"
+                isLoading={formLoading}
+              >
                 {selectedModel ? 'Save Changes' : 'Create'}
               </Button>
             </ModalFooter>
@@ -282,4 +346,3 @@ const MaturityModelsTab: React.FC<MaturityModelsTabProps> = ({
 };
 
 export default MaturityModelsTab;
-

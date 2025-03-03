@@ -1,5 +1,6 @@
+// client/src/pages/campaigns/CampaignServicesTab.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Table,
@@ -39,26 +40,62 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import { FiSearch, FiFilter, FiUpload, FiCheckCircle } from 'react-icons/fi';
 import api from '../../api/api';
-import { ServiceMaturityResult, EvaluationStatus } from '../../models';
+import { ServiceMaturityResult, EvaluationStatus, Measurement } from '../../models';
 
+// Updated props interface to include campaignId
 interface CampaignServicesTabProps {
   serviceResults: ServiceMaturityResult[];
   getMaturityLevelColor: (level: number) => string;
+  campaignId: string; // Add campaign ID as a required prop
 }
 
 const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
   serviceResults,
-  getMaturityLevelColor
+  getMaturityLevelColor,
+  campaignId
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredServices, setFilteredServices] = useState(serviceResults);
   const [selectedService, setSelectedService] = useState<ServiceMaturityResult | null>(null);
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null);
+  const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
+  
+  // Fetch measurements for the campaign's maturity model
+  useEffect(() => {
+    const fetchMeasurements = async () => {
+      try {
+        // Need to fetch the campaign first to get its maturity model ID
+        const campaignResponse = await api.get(`/campaigns/${campaignId}`);
+        const maturityModelId = campaignResponse.data.maturityModel.id;
+        
+        // Then fetch measurements for that maturity model
+        const measurementsResponse = await api.get(`/maturity-models/${maturityModelId}`);
+        setMeasurements(measurementsResponse.data.measurements || []);
+      } catch (error) {
+        console.error('Error fetching measurements:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load measurements',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+    
+    if (campaignId) {
+      fetchMeasurements();
+    }
+  }, [campaignId, toast]);
+  
+  useEffect(() => {
+    setFilteredServices(serviceResults);
+  }, [serviceResults]);
   
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;
@@ -75,26 +112,32 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
     }
   };
   
-  const handleEvidenceSubmit = (serviceId: string, measurementId: string) => {
+  const handleEvidenceSubmit = (serviceId: string) => {
     const service = serviceResults.find(s => s.serviceId === serviceId);
     if (service) {
       setSelectedService(service);
-      setSelectedMeasurementId(measurementId);
+      // Default to first measurement if available
+      setSelectedMeasurementId(measurements.length > 0 ? measurements[0].id : null);
       onOpen();
     }
   };
   
   const handleSubmitEvidence = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedService || !selectedMeasurementId) return;
+    
+    if (!selectedService || !selectedMeasurementId || !campaignId) {
+      setError('Missing required information (service, measurement, or campaign)');
+      return;
+    }
     
     const formData = new FormData(e.target as HTMLFormElement);
     
     const evidenceData = {
       serviceId: selectedService.serviceId,
       measurementId: selectedMeasurementId,
+      campaignId: campaignId,
       evidenceLocation: formData.get('evidenceLocation') as string,
-      notes: formData.get('notes') as string,
+      notes: formData.get('notes') as string || '',
       status: EvaluationStatus.EVIDENCE_SUBMITTED
     };
     
@@ -116,21 +159,9 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
       onClose();
     } catch (error: any) {
       console.error('Error submitting evidence:', error);
-      setError(error.response?.data?.message || 'Failed to submit evidence. Please try again.');
+      setError(error.response?.data?.message || 'Failed to submit evidence. Please ensure all required fields are provided.');
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const getMeasurementStatus = async (serviceId: string, measurementId: string) => {
-    try {
-      const response = await api.get(`/evaluations/status`, {
-        params: { serviceId, measurementId }
-      });
-      return response.data.status;
-    } catch (error) {
-      console.error('Error fetching evaluation status:', error);
-      return EvaluationStatus.NOT_IMPLEMENTED;
     }
   };
   
@@ -198,7 +229,8 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
                   leftIcon={<FiUpload />}
                   colorScheme="blue"
                   variant="outline"
-                  onClick={() => handleEvidenceSubmit(service.serviceId, '1')} // Just an example measurement ID
+                  onClick={() => handleEvidenceSubmit(service.serviceId)}
+                  isDisabled={measurements.length === 0}
                 >
                   Submit Evidence
                 </Button>
@@ -226,58 +258,77 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
             
             <form onSubmit={handleSubmitEvidence}>
               <ModalBody>
-                <Heading size="sm" mb={4}>
-                  Current Maturity: Level {selectedService.maturityLevel} ({selectedService.percentage.toFixed(1)}%)
-                </Heading>
-                
-                {error && (
-                  <Alert status="error" mb={4}>
+                {measurements.length === 0 ? (
+                  <Alert status="warning">
                     <AlertIcon />
-                    {error}
+                    No measurements available for this campaign's maturity model.
                   </Alert>
+                ) : (
+                  <>
+                    <Heading size="sm" mb={4}>
+                      Current Maturity: Level {selectedService.maturityLevel} ({selectedService.percentage.toFixed(1)}%)
+                    </Heading>
+                    
+                    {error && (
+                      <Alert status="error" mb={4}>
+                        <AlertIcon />
+                        {error}
+                      </Alert>
+                    )}
+                    
+                    <FormControl mb={4} isRequired>
+                      <FormLabel>Measurement</FormLabel>
+                      <Select 
+                        name="measurementId" 
+                        value={selectedMeasurementId || ''}
+                        onChange={(e) => setSelectedMeasurementId(e.target.value)}
+                        isRequired
+                      >
+                        {measurements.map(measurement => (
+                          <option key={measurement.id} value={measurement.id}>
+                            {measurement.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    
+                    <FormControl mb={4}>
+                      <FormLabel>Evidence Type</FormLabel>
+                      <Select name="evidenceType">
+                        <option value="url">URL</option>
+                        <option value="document">Document</option>
+                        <option value="image">Image</option>
+                        <option value="text">Text</option>
+                      </Select>
+                    </FormControl>
+                    
+                    <FormControl mb={4} isRequired>
+                      <FormLabel>Evidence Location/URL</FormLabel>
+                      <Input name="evidenceLocation" isRequired />
+                    </FormControl>
+                    
+                    <FormControl>
+                      <FormLabel>Notes</FormLabel>
+                      <Textarea 
+                        name="notes"
+                        placeholder="Add any additional notes or context..."
+                        rows={3}
+                      />
+                    </FormControl>
+                  </>
                 )}
-                
-                <Box mb={6}>
-                  <Heading size="xs" mb={2}>Measurement: Has centralized logging</Heading>
-                  <Flex mb={4} align="center">
-                    <Badge colorScheme="yellow" mr={2}>
-                      {EvaluationStatus.EVIDENCE_SUBMITTED}
-                    </Badge>
-                    <Text fontSize="sm">Last updated: {new Date().toLocaleDateString()}</Text>
-                    <Icon as={FiCheckCircle} color="green.500" ml={2} />
-                  </Flex>
-                  
-                  <FormControl mb={4}>
-                    <FormLabel>Evidence Type</FormLabel>
-                    <Select name="evidenceType">
-                      <option value="url">URL</option>
-                      <option value="document">Document</option>
-                      <option value="image">Image</option>
-                      <option value="text">Text</option>
-                    </Select>
-                  </FormControl>
-                  
-                  <FormControl mb={4} isRequired>
-                    <FormLabel>Evidence Location/URL</FormLabel>
-                    <Input name="evidenceLocation" />
-                  </FormControl>
-                  
-                  <FormControl>
-                    <FormLabel>Notes</FormLabel>
-                    <Textarea 
-                      name="notes"
-                      placeholder="Add any additional notes or context..."
-                      rows={3}
-                    />
-                  </FormControl>
-                </Box>
               </ModalBody>
               
               <ModalFooter>
                 <Button variant="ghost" mr={3} onClick={onClose} isDisabled={loading}>
                   Cancel
                 </Button>
-                <Button colorScheme="blue" type="submit" isLoading={loading}>
+                <Button 
+                  colorScheme="blue" 
+                  type="submit" 
+                  isLoading={loading}
+                  isDisabled={measurements.length === 0}
+                >
                   Submit Evidence
                 </Button>
               </ModalFooter>

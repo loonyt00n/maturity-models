@@ -1,3 +1,5 @@
+// client/src/pages/catalog/JourneysTab.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -26,7 +28,10 @@ import {
   Input,
   Textarea,
   VStack,
-  useToast
+  useToast,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
@@ -47,7 +52,9 @@ const JourneysTab: React.FC<JourneysTabProps> = ({
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [filteredJourneys, setFilteredJourneys] = useState<Journey[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedJourney, setSelectedJourney] = useState<Journey | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { hasRole } = useAuth();
@@ -56,39 +63,6 @@ const JourneysTab: React.FC<JourneysTabProps> = ({
   const isEditor = hasRole([UserRole.ADMIN, UserRole.EDITOR]);
   
   useEffect(() => {
-    const fetchJourneys = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get<Journey[]>('/journeys');
-        setJourneys(response.data);
-      } catch (error) {
-        console.error('Error fetching journeys:', error);
-        // Use mock data for the prototype
-        setJourneys([
-          {
-            id: '1',
-            name: 'User Registration',
-            owner: 'Customer Experience Team',
-            description: 'End-to-end user registration process',
-            activities: [],
-            createdAt: '2023-01-01T00:00:00.000Z',
-            updatedAt: '2023-01-01T00:00:00.000Z'
-          },
-          {
-            id: '2',
-            name: 'Shopping Experience',
-            owner: 'Product Team',
-            description: 'End-to-end shopping experience from discovery to checkout',
-            activities: [],
-            createdAt: '2023-01-15T00:00:00.000Z',
-            updatedAt: '2023-01-15T00:00:00.000Z'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchJourneys();
   }, [refreshTrigger]);
   
@@ -108,6 +82,21 @@ const JourneysTab: React.FC<JourneysTabProps> = ({
     }
   }, [searchTerm, journeys]);
   
+  const fetchJourneys = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get<Journey[]>('/journeys');
+      setJourneys(response.data);
+      setFilteredJourneys(response.data);
+    } catch (error) {
+      console.error('Error fetching journeys:', error);
+      setError('Failed to load journeys. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleAddNewClick = () => {
     setSelectedJourney(null);
     onOpen();
@@ -120,19 +109,84 @@ const JourneysTab: React.FC<JourneysTabProps> = ({
   
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormLoading(true);
     
-    // Get form data and submit to API
-    // In a real app, this would save the journey
+    const formData = new FormData(e.target as HTMLFormElement);
+    const journeyData = {
+      name: formData.get('name') as string,
+      owner: formData.get('owner') as string,
+      description: formData.get('description') as string,
+      dependencyGraph: formData.get('dependencyGraph') 
+        ? JSON.parse(formData.get('dependencyGraph') as string) 
+        : null
+    };
     
-    toast({
-      title: selectedJourney ? 'Journey updated' : 'Journey created',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    
-    onClose();
+    try {
+      if (selectedJourney) {
+        // Update existing journey
+        const response = await api.put<Journey>(`/journeys/${selectedJourney.id}`, journeyData);
+        
+        setJourneys(prev => prev.map(journey => 
+          journey.id === selectedJourney.id ? response.data : journey
+        ));
+        
+        toast({
+          title: 'Journey updated',
+          description: `${journeyData.name} has been updated.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        // Create new journey
+        const response = await api.post<Journey>('/journeys', journeyData);
+        
+        setJourneys(prev => [...prev, response.data]);
+        
+        toast({
+          title: 'Journey created',
+          description: `${journeyData.name} has been created.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+      
+      onClose();
+    } catch (error: any) {
+      console.error('Error saving journey:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to save journey.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setFormLoading(false);
+    }
   };
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" py={10}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading journeys...</Text>
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Alert status="error" mb={4}>
+        <AlertIcon />
+        {error}
+        <Button ml={4} size="sm" onClick={fetchJourneys}>
+          Retry
+        </Button>
+      </Alert>
+    );
+  }
   
   return (
     <Box>
@@ -228,41 +282,68 @@ const JourneysTab: React.FC<JourneysTabProps> = ({
           
           <form onSubmit={handleFormSubmit}>
             <ModalBody>
+              {formLoading && (
+                <Flex justify="center" mb={4}>
+                  <Spinner />
+                </Flex>
+              )}
+              
               <VStack spacing={4}>
                 <FormControl isRequired>
                   <FormLabel>Name</FormLabel>
                   <Input 
+                    name="name"
                     defaultValue={selectedJourney?.name || ''}
                     placeholder="Enter journey name"
+                    isDisabled={formLoading}
                   />
                 </FormControl>
                 
                 <FormControl isRequired>
                   <FormLabel>Owner</FormLabel>
                   <Input 
+                    name="owner"
                     defaultValue={selectedJourney?.owner || ''}
                     placeholder="Enter owner name"
+                    isDisabled={formLoading}
                   />
                 </FormControl>
                 
                 <FormControl isRequired>
                   <FormLabel>Description</FormLabel>
                   <Textarea 
+                    name="description"
                     defaultValue={selectedJourney?.description || ''}
                     placeholder="Enter description"
                     rows={3}
+                    isDisabled={formLoading}
                   />
                 </FormControl>
                 
-                {/* In a real app, you would add controls for dependency graph and activities here */}
+                <FormControl>
+                  <FormLabel>Dependency Graph (JSON)</FormLabel>
+                  <Textarea 
+                    name="dependencyGraph"
+                    defaultValue={selectedJourney?.dependencyGraph 
+                      ? JSON.stringify(selectedJourney.dependencyGraph, null, 2) 
+                      : ''}
+                    placeholder="Enter dependency graph as JSON (optional)"
+                    rows={5}
+                    isDisabled={formLoading}
+                  />
+                </FormControl>
               </VStack>
             </ModalBody>
             
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={onClose} isDisabled={formLoading}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button 
+                colorScheme="blue" 
+                type="submit" 
+                isLoading={formLoading}
+              >
                 {selectedJourney ? 'Save Changes' : 'Create'}
               </Button>
             </ModalFooter>

@@ -93,6 +93,7 @@ export enum UserRole {
   export interface MeasurementEvaluation {
     id: string;
     measurementId: string;
+    measurement?: Measurement;
     serviceId: string;
     campaignId: string;
     status: EvaluationStatus;

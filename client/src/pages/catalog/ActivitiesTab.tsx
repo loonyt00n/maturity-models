@@ -1,3 +1,5 @@
+// client/src/pages/catalog/ActivitiesTab.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -26,7 +28,10 @@ import {
   Input,
   Textarea,
   VStack,
-  useToast
+  useToast,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
@@ -47,7 +52,9 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({
   const [activities, setActivities] = useState<Activity[]>([]);
   const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { hasRole } = useAuth();
@@ -56,39 +63,6 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({
   const isEditor = hasRole([UserRole.ADMIN, UserRole.EDITOR]);
   
   useEffect(() => {
-    const fetchActivities = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get<Activity[]>('/activities');
-        setActivities(response.data);
-      } catch (error) {
-        console.error('Error fetching activities:', error);
-        // Use mock data for the prototype
-        setActivities([
-          {
-            id: '1',
-            name: 'User Management',
-            owner: 'Identity Team',
-            description: 'Manage user accounts and authentication',
-            services: [],
-            createdAt: '2023-01-01T00:00:00.000Z',
-            updatedAt: '2023-01-01T00:00:00.000Z'
-          },
-          {
-            id: '2',
-            name: 'Product Browsing',
-            owner: 'Frontend Team',
-            description: 'Allow users to browse and search products',
-            services: [],
-            createdAt: '2023-01-15T00:00:00.000Z',
-            updatedAt: '2023-01-15T00:00:00.000Z'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchActivities();
   }, [refreshTrigger]);
   
@@ -108,6 +82,21 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({
     }
   }, [searchTerm, activities]);
   
+  const fetchActivities = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get<Activity[]>('/activities');
+      setActivities(response.data);
+      setFilteredActivities(response.data);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      setError('Failed to load activities. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleAddNewClick = () => {
     setSelectedActivity(null);
     onOpen();
@@ -120,19 +109,86 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({
   
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormLoading(true);
     
-    // Get form data and submit to API
-    // In a real app, this would save the activity
+    const formData = new FormData(e.target as HTMLFormElement);
+    const activityData = {
+      name: formData.get('name') as string,
+      owner: formData.get('owner') as string,
+      description: formData.get('description') as string,
+      journeyId: formData.get('journeyId') as string || undefined
+    };
     
-    toast({
-      title: selectedActivity ? 'Activity updated' : 'Activity created',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    
-    onClose();
+    try {
+      let response: { data: Activity };
+      
+      if (selectedActivity) {
+        // Update existing activity
+        response = await api.put<Activity>(`/activities/${selectedActivity.id}`, activityData);
+        
+        setActivities(prevActivities => 
+          prevActivities.map(activity => 
+            activity.id === selectedActivity.id ? response.data : activity
+          )
+        );
+        
+        toast({
+          title: 'Activity updated',
+          description: `${activityData.name} has been updated successfully.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        // Create new activity
+        response = await api.post<Activity>('/activities', activityData);
+        
+        setActivities(prevActivities => [...prevActivities, response.data]);
+        
+        toast({
+          title: 'Activity created',
+          description: `${activityData.name} has been created successfully.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+      
+      onClose();
+    } catch (error: any) {
+      console.error('Error saving activity:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to save activity. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setFormLoading(false);
+    }
   };
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" py={8}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading activities...</Text>
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Box>
+        <Alert status="error" mb={6}>
+          <AlertIcon />
+          {error}
+        </Alert>
+        <Button onClick={fetchActivities}>Try Again</Button>
+      </Box>
+    );
+  }
   
   return (
     <Box>
@@ -242,6 +298,7 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({
                 <FormControl isRequired>
                   <FormLabel>Name</FormLabel>
                   <Input 
+                    name="name"
                     defaultValue={selectedActivity?.name || ''}
                     placeholder="Enter activity name"
                   />
@@ -250,6 +307,7 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({
                 <FormControl isRequired>
                   <FormLabel>Owner</FormLabel>
                   <Input 
+                    name="owner"
                     defaultValue={selectedActivity?.owner || ''}
                     placeholder="Enter owner name"
                   />
@@ -258,21 +316,22 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({
                 <FormControl isRequired>
                   <FormLabel>Description</FormLabel>
                   <Textarea 
+                    name="description"
                     defaultValue={selectedActivity?.description || ''}
                     placeholder="Enter description"
                     rows={3}
                   />
                 </FormControl>
                 
-                {/* In a real app, you would add controls for dependency graph and services here */}
+                {/* Journey selection would go here with an API call to fetch journeys */}
               </VStack>
             </ModalBody>
             
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={onClose} isDisabled={formLoading}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="blue" type="submit" isLoading={formLoading}>
                 {selectedActivity ? 'Save Changes' : 'Create'}
               </Button>
             </ModalFooter>
@@ -284,4 +343,3 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({
 };
 
 export default ActivitiesTab;
-

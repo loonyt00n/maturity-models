@@ -31,7 +31,8 @@ const pathFiles = [
   'paths/activities.yaml',
   'paths/journeys.yaml',
   'paths/campaigns.yaml',
-  'paths/evaluations.yaml'
+  'paths/evaluations.yaml',
+  'paths/admin.yaml'
 ];
 
 const componentFiles = [
@@ -132,6 +133,10 @@ export const swaggerSpec = {
     {
       name: 'Evaluations',
       description: 'Measurement evaluation endpoints',
+    },
+    {
+      name: 'Admin',
+      description: 'Administrative endpoints',
     },
   ],
 };

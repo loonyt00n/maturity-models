@@ -1,3 +1,5 @@
+// client/src/pages/catalog/ServicesTab.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -27,7 +29,10 @@ import {
   Textarea,
   Select,
   VStack,
-  useToast
+  useToast,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
@@ -47,7 +52,10 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
 }) => {
   const [services, setServices] = useState<Service[]>([]);
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+  const [activities, setActivities] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -57,41 +65,6 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
   const isEditor = hasRole([UserRole.ADMIN, UserRole.EDITOR]);
   
   useEffect(() => {
-    const fetchServices = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get<Service[]>('/services');
-        setServices(response.data);
-      } catch (error) {
-        console.error('Error fetching services:', error);
-        // Use mock data for the prototype
-        setServices([
-          {
-            id: '1',
-            name: 'User Authentication Service',
-            owner: 'Identity Team',
-            description: 'Handles user authentication and authorization',
-            serviceType: ServiceType.API_SERVICE,
-            resourceLocation: 'https://github.com/example/auth-service',
-            createdAt: '2023-01-01T00:00:00.000Z',
-            updatedAt: '2023-01-01T00:00:00.000Z'
-          },
-          {
-            id: '2',
-            name: 'Product Catalog UI',
-            owner: 'Frontend Team',
-            description: 'User interface for browsing products',
-            serviceType: ServiceType.UI_APPLICATION,
-            resourceLocation: 'https://github.com/example/product-ui',
-            createdAt: '2023-01-15T00:00:00.000Z',
-            updatedAt: '2023-01-15T00:00:00.000Z'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchServices();
   }, [refreshTrigger]);
   
@@ -111,6 +84,25 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
     }
   }, [searchTerm, services]);
   
+  const fetchServices = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [servicesRes, activitiesRes] = await Promise.all([
+        api.get<Service[]>('/services'),
+        api.get<{id: string, name: string}[]>('/activities')
+      ]);
+      
+      setServices(servicesRes.data);
+      setActivities(activitiesRes.data);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      setError('Failed to load services. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleAddNewClick = () => {
     setSelectedService(null);
     onOpen();
@@ -123,18 +115,67 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
   
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormLoading(true);
     
-    // Get form data and submit to API
-    // In a real app, this would save the service
+    const formData = new FormData(e.target as HTMLFormElement);
     
-    toast({
-      title: selectedService ? 'Service updated' : 'Service created',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
+    const serviceData = {
+      name: formData.get('name') as string,
+      owner: formData.get('owner') as string,
+      description: formData.get('description') as string,
+      serviceType: formData.get('serviceType') as ServiceType,
+      resourceLocation: formData.get('resourceLocation') as string || null,
+      activityId: formData.get('activityId') as string || null
+    };
     
-    onClose();
+    try {
+      let response: { data: Service };
+      
+      if (selectedService) {
+        // Update existing service
+        response = await api.put<Service>(`/services/${selectedService.id}`, serviceData);
+        
+        setServices(prevServices => 
+          prevServices.map(service => 
+            service.id === selectedService.id ? response.data : service
+          )
+        );
+        
+        toast({
+          title: 'Service updated',
+          description: `${serviceData.name} has been updated.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        // Create new service
+        response = await api.post<Service>('/services', serviceData);
+        
+        setServices(prevServices => [...prevServices, response.data]);
+        
+        toast({
+          title: 'Service created',
+          description: `${serviceData.name} has been added.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+      
+      onClose();
+    } catch (error: any) {
+      console.error('Error saving service:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to save service.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setFormLoading(false);
+    }
   };
   
   const getServiceTypeBadge = (type: ServiceType) => {
@@ -151,6 +192,24 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
       </Badge>
     );
   };
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" p={4}>
+        <Spinner size="lg" />
+        <Text mt={2}>Loading services...</Text>
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Alert status="error" mb={4}>
+        <AlertIcon />
+        {error}
+      </Alert>
+    );
+  }
   
   return (
     <Box>
@@ -199,7 +258,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
               <Td>
                 {service.activityId ? (
                   <Link as={RouterLink} to={`/activities/${service.activityId}`}>
-                    View Activity
+                    {activities.find(a => a.id === service.activityId)?.name || 'View Activity'}
                   </Link>
                 ) : (
                   <Text color="gray.500">Not assigned</Text>
@@ -258,6 +317,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
                 <FormControl isRequired>
                   <FormLabel>Name</FormLabel>
                   <Input 
+                    name="name"
                     defaultValue={selectedService?.name || ''}
                     placeholder="Enter service name"
                   />
@@ -266,6 +326,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
                 <FormControl isRequired>
                   <FormLabel>Owner</FormLabel>
                   <Input 
+                    name="owner"
                     defaultValue={selectedService?.owner || ''}
                     placeholder="Enter owner name"
                   />
@@ -274,6 +335,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
                 <FormControl isRequired>
                   <FormLabel>Description</FormLabel>
                   <Textarea 
+                    name="description"
                     defaultValue={selectedService?.description || ''}
                     placeholder="Enter description"
                     rows={3}
@@ -283,8 +345,8 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
                 <FormControl isRequired>
                   <FormLabel>Service Type</FormLabel>
                   <Select 
+                    name="serviceType"
                     defaultValue={selectedService?.serviceType || ''}
-                    placeholder="Select service type"
                   >
                     <option value={ServiceType.API_SERVICE}>API Service</option>
                     <option value={ServiceType.UI_APPLICATION}>UI Application</option>
@@ -296,18 +358,34 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
                 <FormControl>
                   <FormLabel>Resource Location</FormLabel>
                   <Input 
+                    name="resourceLocation"
                     defaultValue={selectedService?.resourceLocation || ''}
                     placeholder="Enter resource location (URL, path, etc.)"
                   />
+                </FormControl>
+                
+                <FormControl>
+                  <FormLabel>Activity</FormLabel>
+                  <Select 
+                    name="activityId"
+                    defaultValue={selectedService?.activityId || ''}
+                  >
+                    <option value="">-- None --</option>
+                    {activities.map(activity => (
+                      <option key={activity.id} value={activity.id}>
+                        {activity.name}
+                      </option>
+                    ))}
+                  </Select>
                 </FormControl>
               </VStack>
             </ModalBody>
             
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={onClose} isDisabled={formLoading}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="blue" type="submit" isLoading={formLoading}>
                 {selectedService ? 'Save Changes' : 'Create'}
               </Button>
             </ModalFooter>
@@ -319,4 +397,3 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
 };
 
 export default ServicesTab;
-

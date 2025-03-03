@@ -1,3 +1,5 @@
+// client/src/pages/details/ServiceDetailsPage.tsx
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -19,17 +21,15 @@ import {
   StatNumber,
   StatHelpText,
   Progress,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Divider,
   Link,
-  useColorModeValue
+  useColorModeValue,
+  Divider,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FiArrowLeft, FiEdit2, FiExternalLink } from 'react-icons/fi';
+import { FiArrowLeft, FiEdit2, FiExternalLink, FiRefreshCw } from 'react-icons/fi';
 import api from '../../api/api';
 import { Service, ServiceType, Campaign, MaturityModel, MeasurementEvaluation, EvaluationStatus } from '../../models';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,6 +48,7 @@ const ServiceDetailsPage: React.FC = () => {
   const [service, setService] = useState<Service | null>(null);
   const [campaignParticipations, setCampaignParticipations] = useState<CampaignParticipation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const { hasRole } = useAuth();
   const isEditor = hasRole([UserRole.ADMIN, UserRole.EDITOR]);
@@ -55,96 +56,31 @@ const ServiceDetailsPage: React.FC = () => {
   const bgColor = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // In a real app, these would be actual API endpoints
-        const [serviceRes, participationsRes] = await Promise.all([
-          api.get<Service>(`/services/${id}`),
-          api.get<CampaignParticipation[]>(`/services/${id}/campaigns`)
-        ]);
-        
-        setService(serviceRes.data);
-        setCampaignParticipations(participationsRes.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // Use mock data for the prototype
-        setService({
-          id: '1',
-          name: 'User Authentication Service',
-          owner: 'Identity Team',
-          description: 'Handles user authentication and authorization',
-          serviceType: ServiceType.API_SERVICE,
-          resourceLocation: 'https://github.com/example/auth-service',
-          createdAt: '2023-01-01T00:00:00.000Z',
-          updatedAt: '2023-01-01T00:00:00.000Z'
-        });
-        
-        setCampaignParticipations([
-          {
-            campaign: {
-              id: '1',
-              name: 'Q1 2023 Operational Excellence Assessment',
-              description: 'Quarterly assessment of operational excellence across all services',
-              startDate: '2023-01-01',
-              endDate: '2023-03-31',
-              maturityModelId: '1',
-              createdAt: '2022-12-15T00:00:00.000Z',
-              updatedAt: '2023-01-01T00:00:00.000Z'
-            },
-            maturityModel: {
-              id: '1',
-              name: 'Operational Excellence Maturity Model',
-              owner: 'Administrator',
-              description: 'A model to assess operational excellence capabilities',
-              measurements: [],
-              createdAt: '2023-01-01T00:00:00.000Z',
-              updatedAt: '2023-01-01T00:00:00.000Z'
-            },
-            maturityLevel: 2,
-            percentage: 65,
-            evaluations: [
-              {
-                id: '1',
-                measurementId: '1',
-                serviceId: '1',
-                campaignId: '1',
-                status: EvaluationStatus.IMPLEMENTED,
-                evidenceLocation: 'https://logs.example.com/service-1',
-                notes: 'All components are sending logs to the central logging system',
-                createdAt: '2023-01-15T00:00:00.000Z',
-                updatedAt: '2023-01-20T00:00:00.000Z'
-              },
-              {
-                id: '2',
-                measurementId: '2',
-                serviceId: '1',
-                campaignId: '1',
-                status: EvaluationStatus.EVIDENCE_REJECTED,
-                evidenceLocation: 'https://metrics.example.com/service-1',
-                notes: 'Only partial metrics are being published',
-                createdAt: '2023-01-15T00:00:00.000Z',
-                updatedAt: '2023-01-22T00:00:00.000Z'
-              }
-            ]
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
     
+    try {
+      if (!id) throw new Error("Service ID is required");
+      
+      const [serviceRes, participationsRes] = await Promise.all([
+        api.get<Service>(`/services/${id}`),
+        api.get<CampaignParticipation[]>(`/services/${id}/campaigns`)
+      ]);
+      
+      setService(serviceRes.data);
+      setCampaignParticipations(participationsRes.data);
+    } catch (error: any) {
+      console.error('Error fetching service data:', error);
+      setError(error.response?.data?.message || 'Failed to load service details. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchData();
   }, [id]);
-  
-  if (loading || !service) {
-    return (
-      <Box p={4}>
-        <Text>Loading service details...</Text>
-      </Box>
-    );
-  }
   
   const getServiceTypeBadge = (type: ServiceType) => {
     const colorSchemes = {
@@ -172,7 +108,7 @@ const ServiceDetailsPage: React.FC = () => {
     
     return (
       <Badge colorScheme={colorSchemes[status]}>
-        {status.replace('_', ' ')}
+        {status.replace(/_/g, ' ')}
       </Badge>
     );
   };
@@ -187,6 +123,42 @@ const ServiceDetailsPage: React.FC = () => {
     };
     return colors[level as keyof typeof colors] || 'gray';
   };
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" p={8}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading service details...</Text>
+      </Box>
+    );
+  }
+  
+  if (error || !service) {
+    return (
+      <Box>
+        <Flex align="center" mb={4}>
+          <Button
+            as={RouterLink}
+            to="/services"
+            leftIcon={<FiArrowLeft />}
+            variant="ghost"
+            size="sm"
+          >
+            Back to Services
+          </Button>
+        </Flex>
+        
+        <Alert status="error" mb={6}>
+          <AlertIcon />
+          {error || "Couldn't load service details"}
+        </Alert>
+        
+        <Button leftIcon={<FiRefreshCw />} onClick={fetchData}>
+          Try Again
+        </Button>
+      </Box>
+    );
+  }
   
   return (
     <Box>
@@ -243,6 +215,8 @@ const ServiceDetailsPage: React.FC = () => {
               leftIcon={<FiEdit2 />}
               colorScheme="blue"
               variant="outline"
+              as={RouterLink}
+              to={`/services/${service.id}/edit`}
             >
               Edit Service
             </Button>
@@ -301,7 +275,7 @@ const ServiceDetailsPage: React.FC = () => {
                     >
                       Level {participation.maturityLevel}
                     </Badge>
-                    <Text fontSize="sm">{participation.percentage}% Complete</Text>
+                    <Text fontSize="sm">{participation.percentage.toFixed(1)}% Complete</Text>
                   </Flex>
                   
                   <Progress 
@@ -334,89 +308,86 @@ const ServiceDetailsPage: React.FC = () => {
           borderRadius="lg"
           shadow="md"
         >
-          <Tabs colorScheme="blue">
-            <TabList px={4} pt={4}>
-              <Tab>Campaign Participations ({campaignParticipations.length})</Tab>
-            </TabList>
-            
-            <Divider mt={4} />
-            
-            <TabPanels>
-              <TabPanel>
-                <Heading size="md" mb={4}>Campaign Evaluations</Heading>
-                
-                {campaignParticipations.map((participation) => (
-                  <Box 
-                    key={participation.campaign.id}
-                    mb={6}
-                    p={4}
-                    borderWidth="1px"
-                    borderRadius="md"
-                    borderColor={borderColor}
-                  >
-                    <Flex justify="space-between" align="center" mb={4}>
-                      <Box>
-                        <Heading size="sm">{participation.campaign.name}</Heading>
-                        <Text fontSize="sm">{participation.maturityModel.name}</Text>
-                      </Box>
-                      
-                      <Flex align="center">
-                        <Badge 
-                          colorScheme={getMaturityLevelColor(participation.maturityLevel)}
-                          mr={3}
-                          px={2}
-                          py={1}
-                        >
-                          Level {participation.maturityLevel}
-                        </Badge>
-                        
-                        <Link 
-                          as={RouterLink} 
-                          to={`/campaigns/${participation.campaign.id}`}
-                        >
-                          <Button size="sm" colorScheme="blue" variant="outline">
-                            View Campaign
-                          </Button>
-                        </Link>
-                      </Flex>
-                    </Flex>
-                    
-                    <Table variant="simple" size="sm">
-                      <Thead>
-                        <Tr>
-                          <Th>Measurement</Th>
-                          <Th>Status</Th>
-                          <Th>Evidence</Th>
-                          <Th>Notes</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {participation.evaluations.map((evaluation) => (
-                          <Tr key={evaluation.id}>
-                            <Td fontWeight="medium">
-                              {/* In a real app, this would show the measurement name */}
-                              {evaluation.measurementId === '1' 
-                                ? 'Has centralized logging' 
-                                : 'Has infrastructure metrics published'}
-                            </Td>
-                            <Td>{getStatusBadge(evaluation.status)}</Td>
-                            <Td>
-                              {evaluation.evidenceLocation && (
-                                <Link href={evaluation.evidenceLocation} isExternal color="blue.500">
-                                  Evidence <FiExternalLink style={{ display: 'inline' }} />
-                                </Link>
-                              )}
-                            </Td>
-                            <Td>{evaluation.notes}</Td>
-                          </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
+          <Heading size="md" p={4} borderBottomWidth="1px">
+            Campaign Evaluations ({campaignParticipations.length})
+          </Heading>
+          
+          <Divider />
+          
+          <Box p={4}>
+            {campaignParticipations.map((participation) => (
+              <Box 
+                key={participation.campaign.id}
+                mb={6}
+                p={4}
+                borderWidth="1px"
+                borderRadius="md"
+                borderColor={borderColor}
+              >
+                <Flex justify="space-between" align="center" mb={4}>
+                  <Box>
+                    <Heading size="sm">{participation.campaign.name}</Heading>
+                    <Text fontSize="sm">{participation.maturityModel.name}</Text>
                   </Box>
-                ))}
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
+                  
+                  <Flex align="center">
+                    <Badge 
+                      colorScheme={getMaturityLevelColor(participation.maturityLevel)}
+                      mr={3}
+                      px={2}
+                      py={1}
+                    >
+                      Level {participation.maturityLevel}
+                    </Badge>
+                    
+                    <Link 
+                      as={RouterLink} 
+                      to={`/campaigns/${participation.campaign.id}`}
+                    >
+                      <Button size="sm" colorScheme="blue" variant="outline">
+                        View Campaign
+                      </Button>
+                    </Link>
+                  </Flex>
+                </Flex>
+                
+                <Table variant="simple" size="sm">
+                  <Thead>
+                    <Tr>
+                      <Th>Measurement</Th>
+                      <Th>Status</Th>
+                      <Th>Evidence</Th>
+                      <Th>Notes</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {participation.evaluations.map((evaluation) => (
+                      <Tr key={evaluation.id}>
+                        <Td fontWeight="medium">
+                          {evaluation.measurement?.name || `Measurement ${evaluation.measurementId}`}
+                        </Td>
+                        <Td>{getStatusBadge(evaluation.status)}</Td>
+                        <Td>
+                          {evaluation.evidenceLocation && (
+                            <Link href={evaluation.evidenceLocation} isExternal color="blue.500">
+                              Evidence <FiExternalLink style={{ display: 'inline' }} />
+                            </Link>
+                          )}
+                        </Td>
+                        <Td>{evaluation.notes}</Td>
+                      </Tr>
+                    ))}
+                    
+                    {participation.evaluations.length === 0 && (
+                      <Tr>
+                        <Td colSpan={4} textAlign="center">No evaluations found</Td>
+                      </Tr>
+                    )}
+                  </Tbody>
+                </Table>
+              </Box>
+            ))}
+          </Box>
         </Box>
       )}
     </Box>
@@ -424,4 +395,3 @@ const ServiceDetailsPage: React.FC = () => {
 };
 
 export default ServiceDetailsPage;
-

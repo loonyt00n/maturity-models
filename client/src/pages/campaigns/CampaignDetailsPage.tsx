@@ -277,6 +277,7 @@ const CampaignDetailsPage: React.FC = () => {
               <CampaignServicesTab 
                 serviceResults={results.serviceResults}
                 getMaturityLevelColor={getMaturityLevelColor}
+                campaignId={campaign.id} 
               />
             </TabPanel>
             
