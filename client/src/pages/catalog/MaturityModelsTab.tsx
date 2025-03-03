@@ -31,7 +31,7 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
 import api from '../../api/api';
-import { MaturityModel } from '../../models';
+import { MaturityModel, EvidenceType } from '../../models';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../models';
 
@@ -75,7 +75,7 @@ const MaturityModelsTab: React.FC<MaturityModelsTabProps> = ({
                 id: '1',
                 name: 'Has centralized logging',
                 description: 'The service must implement centralized logging for all components',
-                evidenceType: 'url',
+                evidenceType: EvidenceType.URL,
                 sampleEvidence: 'https://logs.example.com/dashboard',
                 maturityModelId: '1'
               },
@@ -83,7 +83,7 @@ const MaturityModelsTab: React.FC<MaturityModelsTabProps> = ({
                 id: '2',
                 name: 'Has infrastructure metrics published',
                 description: 'The service must publish infrastructure metrics to central monitoring',
-                evidenceType: 'url',
+                evidenceType: EvidenceType.URL,
                 sampleEvidence: 'https://metrics.example.com/dashboard',
                 maturityModelId: '1'
               }

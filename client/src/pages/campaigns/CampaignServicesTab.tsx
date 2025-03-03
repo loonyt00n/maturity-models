@@ -29,7 +29,8 @@ import {
   Textarea,
   useToast,
   InputGroup,
-  InputLeftElement
+  InputLeftElement,
+  Icon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiSearch, FiFilter, FiUpload, FiCheckCircle } from 'react-icons/fi';

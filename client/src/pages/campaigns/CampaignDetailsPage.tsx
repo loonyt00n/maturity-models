@@ -33,7 +33,8 @@ import {
   Service, 
   JourneyMaturityResult, 
   ActivityMaturityResult,
-  ServiceMaturityResult 
+  ServiceMaturityResult,
+  EvidenceType 
 } from '../../models';
 import CampaignOverviewTab from './CampaignOverviewTab';
 import CampaignServicesTab from './CampaignServicesTab';
@@ -100,7 +101,7 @@ const CampaignDetailsPage: React.FC = () => {
               id: '1',
               name: 'Has centralized logging',
               description: 'The service must implement centralized logging for all components',
-              evidenceType: 'url',
+              evidenceType: EvidenceType.URL,
               sampleEvidence: 'https://logs.example.com/dashboard',
               maturityModelId: '1'
             },
@@ -108,7 +109,7 @@ const CampaignDetailsPage: React.FC = () => {
               id: '2',
               name: 'Has infrastructure metrics published',
               description: 'The service must publish infrastructure metrics to central monitoring',
-              evidenceType: 'url',
+              evidenceType: EvidenceType.URL,
               sampleEvidence: 'https://metrics.example.com/dashboard',
               maturityModelId: '1'
             }

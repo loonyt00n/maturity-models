@@ -86,7 +86,7 @@ const CampaignsPage: React.FC = () => {
             name: 'Security Assessment 2023',
             description: 'Annual security assessment for all services',
             startDate: '2023-02-01',
-            endDate: null,
+            endDate: undefined,
             maturityModelId: '1',
             createdAt: '2023-01-15',
             updatedAt: '2023-01-15'

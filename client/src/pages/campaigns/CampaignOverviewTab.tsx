@@ -239,7 +239,7 @@ const CampaignOverviewTab: React.FC<CampaignOverviewTabProps> = ({
                     dataKey="maturityLevel" 
                     fill="#8884d8" 
                     name="Maturity Level"
-                    label={{ position: 'right', formatter: (val) => `Level ${val}` }}
+                    label={{ position: 'right', formatter: (val: number) => `Level ${val}` }}
                   >
                     {journeyBarData.map((entry, index) => (
                       <Cell 

@@ -13,7 +13,8 @@ import {
   Icon,
   Divider,
   useColorModeValue,
-  Button
+  Button,
+  Badge  // Added Badge import
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiUsers, FiLayers, FiServer, FiMap, FiClipboard, FiBarChart2 } from 'react-icons/fi';
