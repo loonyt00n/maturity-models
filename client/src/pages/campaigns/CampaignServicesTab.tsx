@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -30,10 +31,14 @@ import {
   useToast,
   InputGroup,
   InputLeftElement,
-  Icon
+  Icon,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiSearch, FiFilter, FiUpload, FiCheckCircle } from 'react-icons/fi';
+import api from '../../api/api';
 import { ServiceMaturityResult, EvaluationStatus } from '../../models';
 
 interface CampaignServicesTabProps {
@@ -48,6 +53,9 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredServices, setFilteredServices] = useState(serviceResults);
   const [selectedService, setSelectedService] = useState<ServiceMaturityResult | null>(null);
+  const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -67,17 +75,36 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
     }
   };
   
-  const handleEvidenceSubmit = (serviceId: string) => {
+  const handleEvidenceSubmit = (serviceId: string, measurementId: string) => {
     const service = serviceResults.find(s => s.serviceId === serviceId);
     if (service) {
       setSelectedService(service);
+      setSelectedMeasurementId(measurementId);
       onOpen();
     }
   };
   
-  const handleSubmitEvidence = async (formData: any) => {
+  const handleSubmitEvidence = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedService || !selectedMeasurementId) return;
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    
+    const evidenceData = {
+      serviceId: selectedService.serviceId,
+      measurementId: selectedMeasurementId,
+      evidenceLocation: formData.get('evidenceLocation') as string,
+      notes: formData.get('notes') as string,
+      status: EvaluationStatus.EVIDENCE_SUBMITTED
+    };
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      // In a real app, this would submit to the API
+      // Submit to the API
+      await api.post('/evaluations', evidenceData);
+      
       toast({
         title: 'Evidence submitted',
         description: 'Your evidence has been submitted for review',
@@ -87,21 +114,24 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
       });
       
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting evidence:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to submit evidence',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      setError(error.response?.data?.message || 'Failed to submit evidence. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
   
-  const getMeasurementStatus = (serviceId: string, measurementId: string) => {
-    // In a real app, this would fetch the actual status
-    return EvaluationStatus.EVIDENCE_SUBMITTED;
+  const getMeasurementStatus = async (serviceId: string, measurementId: string) => {
+    try {
+      const response = await api.get(`/evaluations/status`, {
+        params: { serviceId, measurementId }
+      });
+      return response.data.status;
+    } catch (error) {
+      console.error('Error fetching evaluation status:', error);
+      return EvaluationStatus.NOT_IMPLEMENTED;
+    }
   };
   
   return (
@@ -153,7 +183,7 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
               <Td>
                 <Flex direction="column">
                   <Text fontSize="sm" mb={1}>
-                    {service.percentage}% Complete
+                    {service.percentage.toFixed(1)}% Complete
                   </Text>
                   <Progress 
                     value={service.percentage} 
@@ -168,7 +198,7 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
                   leftIcon={<FiUpload />}
                   colorScheme="blue"
                   variant="outline"
-                  onClick={() => handleEvidenceSubmit(service.serviceId)}
+                  onClick={() => handleEvidenceSubmit(service.serviceId, '1')} // Just an example measurement ID
                 >
                   Submit Evidence
                 </Button>
@@ -194,23 +224,27 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
             <ModalHeader>Submit Evidence for {selectedService.serviceName}</ModalHeader>
             <ModalCloseButton />
             
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              handleSubmitEvidence(formData);
-            }}>
+            <form onSubmit={handleSubmitEvidence}>
               <ModalBody>
                 <Heading size="sm" mb={4}>
-                  Current Maturity: Level {selectedService.maturityLevel} ({selectedService.percentage}%)
+                  Current Maturity: Level {selectedService.maturityLevel} ({selectedService.percentage.toFixed(1)}%)
                 </Heading>
                 
+                {error && (
+                  <Alert status="error" mb={4}>
+                    <AlertIcon />
+                    {error}
+                  </Alert>
+                )}
+                
                 <Box mb={6}>
-                  <Heading size="xs" mb={2}>Measurement 1: Has centralized logging</Heading>
+                  <Heading size="xs" mb={2}>Measurement: Has centralized logging</Heading>
                   <Flex mb={4} align="center">
                     <Badge colorScheme="yellow" mr={2}>
-                      {getMeasurementStatus(selectedService.serviceId, '1')}
+                      {EvaluationStatus.EVIDENCE_SUBMITTED}
                     </Badge>
-                    <Text fontSize="sm">Last updated: 12/15/2022</Text>
+                    <Text fontSize="sm">Last updated: {new Date().toLocaleDateString()}</Text>
+                    <Icon as={FiCheckCircle} color="green.500" ml={2} />
                   </Flex>
                   
                   <FormControl mb={4}>
@@ -223,7 +257,7 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
                     </Select>
                   </FormControl>
                   
-                  <FormControl mb={4}>
+                  <FormControl mb={4} isRequired>
                     <FormLabel>Evidence Location/URL</FormLabel>
                     <Input name="evidenceLocation" />
                   </FormControl>
@@ -237,28 +271,13 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
                     />
                   </FormControl>
                 </Box>
-                
-                <Box>
-                  <Heading size="xs" mb={2}>Measurement 2: Has infrastructure metrics published</Heading>
-                  <Flex mb={4} align="center">
-                    <Badge colorScheme="green" mr={2}>
-                      IMPLEMENTED
-                    </Badge>
-                    <Text fontSize="sm">Last updated: 1/5/2023</Text>
-                    <Icon as={FiCheckCircle} color="green.500" ml={2} />
-                  </Flex>
-                  
-                  <Text fontSize="sm" color="gray.500">
-                    Evidence: https://metrics.example.com/dashboard
-                  </Text>
-                </Box>
               </ModalBody>
               
               <ModalFooter>
-                <Button variant="ghost" mr={3} onClick={onClose}>
+                <Button variant="ghost" mr={3} onClick={onClose} isDisabled={loading}>
                   Cancel
                 </Button>
-                <Button colorScheme="blue" type="submit">
+                <Button colorScheme="blue" type="submit" isLoading={loading}>
                   Submit Evidence
                 </Button>
               </ModalFooter>
@@ -271,4 +290,3 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
 };
 
 export default CampaignServicesTab;
-

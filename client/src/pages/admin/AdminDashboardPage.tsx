@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -14,7 +15,10 @@ import {
   Divider,
   useColorModeValue,
   Button,
-  Badge  // Added Badge import
+  Alert,
+  AlertIcon,
+  Spinner,
+  Badge
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiUsers, FiLayers, FiServer, FiMap, FiClipboard, FiBarChart2 } from 'react-icons/fi';
@@ -68,6 +72,7 @@ const AdminDashboardPage: React.FC = () => {
   const [maturityDistribution, setMaturityDistribution] = useState<MaturityDistribution[]>([]);
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const { user } = useAuth();
   const bgColor = useColorModeValue('white', 'gray.700');
@@ -76,8 +81,8 @@ const AdminDashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
-        // In a real app, these would be actual API endpoints
         const [statsRes, usersRes, distributionRes] = await Promise.all([
           api.get<SystemStats>('/admin/stats'),
           api.get<User[]>('/admin/recent-users'),
@@ -93,50 +98,7 @@ const AdminDashboardPage: React.FC = () => {
         setMaturityDistribution(distributionRes.data.maturityDistribution);
       } catch (error) {
         console.error('Error fetching admin data:', error);
-        // Use mock data for the prototype
-        setStats({
-          userCount: 15,
-          maturityModelCount: 3,
-          serviceCount: 22,
-          activityCount: 8,
-          journeyCount: 4,
-          campaignCount: 5
-        });
-        
-        setRecentUsers([
-          {
-            id: '2',
-            username: 'editor1',
-            name: 'Editor User',
-            email: 'editor@example.com',
-            role: UserRole.EDITOR,
-            createdAt: '2023-01-15T10:00:00.000Z',
-            updatedAt: '2023-01-15T10:00:00.000Z'
-          },
-          {
-            id: '3',
-            username: 'viewer1',
-            name: 'Viewer User',
-            email: 'viewer@example.com',
-            role: UserRole.VIEWER,
-            createdAt: '2023-01-20T10:00:00.000Z',
-            updatedAt: '2023-01-20T10:00:00.000Z'
-          }
-        ]);
-        
-        setRoleDistribution([
-          { name: 'Admin', value: 1 },
-          { name: 'Editor', value: 4 },
-          { name: 'Viewer', value: 10 }
-        ]);
-        
-        setMaturityDistribution([
-          { level: 0, count: 5, percentage: 20 },
-          { level: 1, count: 6, percentage: 25 },
-          { level: 2, count: 8, percentage: 35 },
-          { level: 3, count: 3, percentage: 15 },
-          { level: 4, count: 1, percentage: 5 }
-        ]);
+        setError('Failed to load admin dashboard data. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -146,6 +108,28 @@ const AdminDashboardPage: React.FC = () => {
   }, []);
   
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" p={8}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading admin dashboard data...</Text>
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Box>
+        <Heading mb={6}>Admin Dashboard</Heading>
+        <Alert status="error" mb={6}>
+          <AlertIcon />
+          {error}
+        </Alert>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </Box>
+    );
+  }
   
   return (
     <Box>
@@ -347,26 +331,32 @@ const AdminDashboardPage: React.FC = () => {
           </Heading>
           
           <Box height="300px">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={roleDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {roleDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {roleDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={roleDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {roleDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <Flex justify="center" align="center" height="100%">
+                <Text>No user role distribution data available</Text>
+              </Flex>
+            )}
           </Box>
         </Box>
         
@@ -383,21 +373,27 @@ const AdminDashboardPage: React.FC = () => {
           </Heading>
           
           <Box height="300px">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={maturityDistribution}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="level" name="Level" label={{ value: 'Maturity Level', position: 'insideBottom', offset: -5 }} />
-                <YAxis yAxisId="left" orientation="left" label={{ value: 'Count', angle: -90, position: 'insideLeft' }} />
-                <YAxis yAxisId="right" orientation="right" label={{ value: 'Percentage', angle: 90, position: 'insideRight' }} />
-                <Tooltip />
-                <Legend />
-                <Bar yAxisId="left" dataKey="count" name="Service Count" fill="#8884d8" />
-                <Bar yAxisId="right" dataKey="percentage" name="Percentage" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+            {maturityDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={maturityDistribution}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="level" name="Level" label={{ value: 'Maturity Level', position: 'insideBottom', offset: -5 }} />
+                  <YAxis yAxisId="left" orientation="left" label={{ value: 'Count', angle: -90, position: 'insideLeft' }} />
+                  <YAxis yAxisId="right" orientation="right" label={{ value: 'Percentage', angle: 90, position: 'insideRight' }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="count" name="Service Count" fill="#8884d8" />
+                  <Bar yAxisId="right" dataKey="percentage" name="Percentage" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <Flex justify="center" align="center" height="100%">
+                <Text>No maturity distribution data available</Text>
+              </Flex>
+            )}
           </Box>
         </Box>
       </SimpleGrid>
@@ -458,7 +454,7 @@ const AdminDashboardPage: React.FC = () => {
         
         {recentUsers.length === 0 && (
           <Text textAlign="center" py={4}>
-            No users found
+            No recent users found
           </Text>
         )}
       </Box>
@@ -467,4 +463,3 @@ const AdminDashboardPage: React.FC = () => {
 };
 
 export default AdminDashboardPage;
-

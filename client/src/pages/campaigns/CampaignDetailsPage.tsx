@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -22,7 +23,10 @@ import {
   Link,
   useColorModeValue,
   Divider,
-  useToast
+  useToast,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiCalendar, FiUsers, FiLayers, FiArrowLeft } from 'react-icons/fi';
@@ -53,6 +57,7 @@ const CampaignDetailsPage: React.FC = () => {
     overallPercentage: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const toast = useToast();
   const bgColor = useColorModeValue('white', 'gray.700');
@@ -60,9 +65,11 @@ const CampaignDetailsPage: React.FC = () => {
   
   useEffect(() => {
     const fetchData = async () => {
+      if (!id) return;
       setLoading(true);
+      setError(null);
+      
       try {
-        // In a real app, these would be actual API endpoints
         const [campaignRes, resultsRes] = await Promise.all([
           api.get<{ campaign: Campaign; maturityModel: MaturityModel }>(`/campaigns/${id}`),
           api.get<{
@@ -78,135 +85,8 @@ const CampaignDetailsPage: React.FC = () => {
         setMaturityModel(campaignRes.data.maturityModel);
         setResults(resultsRes.data);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        // Use mock data for the prototype
-        setCampaign({
-          id: '1',
-          name: 'Q1 2023 Operational Excellence Assessment',
-          description: 'Quarterly assessment of operational excellence across all services',
-          startDate: '2023-01-01',
-          endDate: '2023-03-31',
-          maturityModelId: '1',
-          createdAt: '2022-12-15',
-          updatedAt: '2023-01-01'
-        });
-        
-        setMaturityModel({
-          id: '1',
-          name: 'Operational Excellence Maturity Model',
-          owner: 'Administrator',
-          description: 'A model to assess operational excellence capabilities',
-          measurements: [
-            {
-              id: '1',
-              name: 'Has centralized logging',
-              description: 'The service must implement centralized logging for all components',
-              evidenceType: EvidenceType.URL,
-              sampleEvidence: 'https://logs.example.com/dashboard',
-              maturityModelId: '1'
-            },
-            {
-              id: '2',
-              name: 'Has infrastructure metrics published',
-              description: 'The service must publish infrastructure metrics to central monitoring',
-              evidenceType: EvidenceType.URL,
-              sampleEvidence: 'https://metrics.example.com/dashboard',
-              maturityModelId: '1'
-            }
-          ],
-          createdAt: '2023-01-01',
-          updatedAt: '2023-01-01'
-        });
-        
-        // Mock results data
-        setResults({
-          journeyResults: [
-            {
-              journeyId: '1',
-              journeyName: 'User Registration',
-              maturityLevel: 2,
-              activityResults: [
-                {
-                  activityId: '1',
-                  activityName: 'User Management',
-                  maturityLevel: 2,
-                  serviceResults: [
-                    {
-                      serviceId: '1',
-                      serviceName: 'User Authentication Service',
-                      maturityLevel: 2,
-                      percentage: 50
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              journeyId: '2',
-              journeyName: 'Shopping Experience',
-              maturityLevel: 3,
-              activityResults: [
-                {
-                  activityId: '2',
-                  activityName: 'Product Browsing',
-                  maturityLevel: 3,
-                  serviceResults: [
-                    {
-                      serviceId: '2',
-                      serviceName: 'Product Catalog UI',
-                      maturityLevel: 3,
-                      percentage: 75
-                    }
-                  ]
-                }
-              ]
-            }
-          ],
-          activityResults: [
-            {
-              activityId: '1',
-              activityName: 'User Management',
-              maturityLevel: 2,
-              serviceResults: [
-                {
-                  serviceId: '1',
-                  serviceName: 'User Authentication Service',
-                  maturityLevel: 2,
-                  percentage: 50
-                }
-              ]
-            },
-            {
-              activityId: '2',
-              activityName: 'Product Browsing',
-              maturityLevel: 3,
-              serviceResults: [
-                {
-                  serviceId: '2',
-                  serviceName: 'Product Catalog UI',
-                  maturityLevel: 3,
-                  percentage: 75
-                }
-              ]
-            }
-          ],
-          serviceResults: [
-            {
-              serviceId: '1',
-              serviceName: 'User Authentication Service',
-              maturityLevel: 2,
-              percentage: 50
-            },
-            {
-              serviceId: '2',
-              serviceName: 'Product Catalog UI',
-              maturityLevel: 3,
-              percentage: 75
-            }
-          ],
-          overallLevel: 2,
-          overallPercentage: 65
-        });
+        console.error('Error fetching campaign data:', error);
+        setError('Failed to load campaign details. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -215,10 +95,38 @@ const CampaignDetailsPage: React.FC = () => {
     fetchData();
   }, [id]);
   
-  if (loading || !campaign || !maturityModel || !results) {
+  if (loading) {
+    return (
+      <Box textAlign="center" p={8}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading campaign details...</Text>
+      </Box>
+    );
+  }
+  
+  if (error || !campaign || !maturityModel || !results) {
     return (
       <Box p={4}>
-        <Text>Loading campaign details...</Text>
+        <Flex align="center" mb={4}>
+          <Button
+            as={RouterLink}
+            to="/campaigns"
+            leftIcon={<FiArrowLeft />}
+            variant="ghost"
+            size="sm"
+          >
+            Back to Campaigns
+          </Button>
+        </Flex>
+        
+        <Alert status="error">
+          <AlertIcon />
+          {error || "Couldn't load campaign details. Please try again."}
+        </Alert>
+        
+        <Button mt={4} onClick={() => window.location.reload()}>
+          Retry
+        </Button>
       </Box>
     );
   }
@@ -322,7 +230,7 @@ const CampaignDetailsPage: React.FC = () => {
                   >
                     Level {results.overallLevel}
                   </Badge>
-                  <StatNumber>{results.overallPercentage}%</StatNumber>
+                  <StatNumber>{results.overallPercentage.toFixed(1)}%</StatNumber>
                 </Flex>
                 <StatHelpText>
                   {results.serviceResults.length} Services Evaluated
@@ -393,4 +301,3 @@ const CampaignDetailsPage: React.FC = () => {
 };
 
 export default CampaignDetailsPage;
-

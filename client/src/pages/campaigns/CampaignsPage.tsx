@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -32,7 +33,10 @@ import {
   Textarea,
   VStack,
   useColorModeValue,
-  useToast
+  useToast,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiPlus, FiSearch, FiRefreshCw, FiCalendar, FiBarChart2 } from 'react-icons/fi';
@@ -41,12 +45,21 @@ import { Campaign, MaturityModel } from '../../models';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../models';
 
+interface CampaignProgress {
+  percentage: number;
+  completedServices: number;
+  totalServices: number;
+}
+
 const CampaignsPage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
   const [maturityModels, setMaturityModels] = useState<MaturityModel[]>([]);
+  const [campaignProgress, setCampaignProgress] = useState<Record<string, CampaignProgress>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [formLoading, setFormLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { hasRole } = useAuth();
@@ -56,59 +69,6 @@ const CampaignsPage: React.FC = () => {
   const isEditor = hasRole([UserRole.ADMIN, UserRole.EDITOR]);
   
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // In a real app, these would be actual API endpoints
-        const [campaignsRes, modelsRes] = await Promise.all([
-          api.get<Campaign[]>('/campaigns'),
-          api.get<MaturityModel[]>('/maturity-models')
-        ]);
-        
-        setCampaigns(campaignsRes.data);
-        setMaturityModels(modelsRes.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // Use mock data for the prototype
-        setCampaigns([
-          {
-            id: '1',
-            name: 'Q1 2023 Operational Excellence Assessment',
-            description: 'Quarterly assessment of operational excellence across all services',
-            startDate: '2023-01-01',
-            endDate: '2023-03-31',
-            maturityModelId: '1',
-            createdAt: '2022-12-15',
-            updatedAt: '2023-01-01'
-          },
-          {
-            id: '2',
-            name: 'Security Assessment 2023',
-            description: 'Annual security assessment for all services',
-            startDate: '2023-02-01',
-            endDate: undefined,
-            maturityModelId: '1',
-            createdAt: '2023-01-15',
-            updatedAt: '2023-01-15'
-          }
-        ]);
-        
-        setMaturityModels([
-          {
-            id: '1',
-            name: 'Operational Excellence Maturity Model',
-            owner: 'Administrator',
-            description: 'A model to assess operational excellence capabilities',
-            measurements: [],
-            createdAt: '2023-01-01',
-            updatedAt: '2023-01-01'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchData();
   }, []);
   
@@ -127,33 +87,80 @@ const CampaignsPage: React.FC = () => {
     }
   }, [searchTerm, campaigns]);
   
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-  
-  const handleRefresh = async () => {
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const response = await api.get<Campaign[]>('/campaigns');
-      setCampaigns(response.data);
+      const [campaignsRes, modelsRes] = await Promise.all([
+        api.get<Campaign[]>('/campaigns'),
+        api.get<MaturityModel[]>('/maturity-models')
+      ]);
+      
+      setCampaigns(campaignsRes.data);
+      setMaturityModels(modelsRes.data);
+      
+      // Fetch progress for each campaign
+      const progressPromises = campaignsRes.data.map(campaign => 
+        fetchCampaignProgress(campaign.id)
+      );
+      
+      await Promise.all(progressPromises);
     } catch (error) {
-      console.error('Error refreshing campaigns:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to refresh campaigns',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      console.error('Error fetching campaigns data:', error);
+      setError('Failed to load campaigns. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
   
-  const handleCreateCampaign = async (formData: any) => {
+  const fetchCampaignProgress = async (campaignId: string) => {
     try {
-      // In a real app, this would submit to the API
-      // const response = await api.post('/campaigns', formData);
+      const response = await api.get<{overallPercentage: number; serviceResults: any[]}>(`/campaigns/${campaignId}/results`);
+      
+      setCampaignProgress(prev => ({
+        ...prev,
+        [campaignId]: {
+          percentage: response.data.overallPercentage,
+          completedServices: response.data.serviceResults.filter(s => s.percentage === 100).length,
+          totalServices: response.data.serviceResults.length
+        }
+      }));
+    } catch (error) {
+      console.error(`Error fetching progress for campaign ${campaignId}:`, error);
+      setCampaignProgress(prev => ({
+        ...prev,
+        [campaignId]: {
+          percentage: 0,
+          completedServices: 0,
+          totalServices: 0
+        }
+      }));
+    }
+  };
+  
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  const handleRefresh = () => {
+    fetchData();
+  };
+  
+  const handleCreateCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const data = {
+      name: formData.get('name') as string,
+      description: formData.get('description') as string,
+      maturityModelId: formData.get('maturityModelId') as string,
+      startDate: formData.get('startDate') as string,
+      endDate: formData.get('endDate') as string || undefined
+    };
+    
+    try {
+      await api.post('/campaigns', data);
       
       toast({
         title: 'Campaign created',
@@ -164,16 +171,18 @@ const CampaignsPage: React.FC = () => {
       });
       
       onClose();
-      handleRefresh();
-    } catch (error) {
+      fetchData();
+    } catch (error: any) {
       console.error('Error creating campaign:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create campaign',
+        description: error.response?.data?.message || 'Failed to create campaign',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setFormLoading(false);
     }
   };
   
@@ -192,13 +201,36 @@ const CampaignsPage: React.FC = () => {
   };
   
   const getCampaignProgress = (campaign: Campaign) => {
-    // In a real app, this would calculate actual progress
-    return {
-      percentage: 65,
-      completedServices: 7,
-      totalServices: 12
+    return campaignProgress[campaign.id] || {
+      percentage: 0,
+      completedServices: 0,
+      totalServices: 0
     };
   };
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" p={8}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading campaigns...</Text>
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Box>
+        <Heading mb={6}>Campaigns</Heading>
+        <Alert status="error" mb={6}>
+          <AlertIcon />
+          {error}
+        </Alert>
+        <Button leftIcon={<FiRefreshCw />} onClick={handleRefresh}>
+          Try Again
+        </Button>
+      </Box>
+    );
+  }
   
   return (
     <Box>
@@ -299,7 +331,7 @@ const CampaignsPage: React.FC = () => {
                   <Td>
                     <Box>
                       <Flex justify="space-between" mb={1}>
-                        <Text fontSize="sm">{progress.percentage}%</Text>
+                        <Text fontSize="sm">{progress.percentage.toFixed(1)}%</Text>
                         <Text fontSize="sm">
                           {progress.completedServices}/{progress.totalServices} Services
                         </Text>
@@ -341,20 +373,7 @@ const CampaignsPage: React.FC = () => {
           <ModalHeader>Create New Campaign</ModalHeader>
           <ModalCloseButton />
           
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const data = {
-                name: formData.get('name'),
-                description: formData.get('description'),
-                maturityModelId: formData.get('maturityModelId'),
-                startDate: formData.get('startDate'),
-                endDate: formData.get('endDate') || null
-              };
-              handleCreateCampaign(data);
-            }}
-          >
+          <form onSubmit={handleCreateCampaign}>
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl isRequired>
@@ -407,10 +426,10 @@ const CampaignsPage: React.FC = () => {
             </ModalBody>
             
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={onClose} isDisabled={formLoading}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="blue" type="submit" isLoading={formLoading}>
                 Create Campaign
               </Button>
             </ModalFooter>
@@ -422,4 +441,3 @@ const CampaignsPage: React.FC = () => {
 };
 
 export default CampaignsPage;
-

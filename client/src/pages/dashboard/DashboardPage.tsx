@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { 
   Box, 
@@ -12,7 +13,9 @@ import {
   Link,
   useColorModeValue,
   Flex,
-  Progress
+  Progress,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { 
@@ -52,14 +55,15 @@ const DashboardPage: React.FC = () => {
   const [maturityDistribution, setMaturityDistribution] = useState<MaturityDistribution[]>([]);
   const [recentCampaigns, setRecentCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const statBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   
   useEffect(() => {
     const fetchDashboardData = async () => {
+      setError(null);
       try {
-        // In a real app, these would be actual API endpoints
         const [
           maturityModelsRes,
           servicesRes,
@@ -88,35 +92,7 @@ const DashboardPage: React.FC = () => {
         setMaturityDistribution(distributionRes.data);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        // In this prototype, we'll use mock data if the API call fails
-        setStats({
-          maturityModels: 3,
-          services: 12,
-          activities: 5,
-          journeys: 2,
-          activeCampaigns: 1
-        });
-        
-        setRecentCampaigns([
-          {
-            id: '1',
-            name: 'Q1 2023 Operational Excellence Assessment',
-            description: 'Quarterly assessment of operational excellence across all services',
-            startDate: '2023-01-01',
-            endDate: '2023-03-31',
-            maturityModelId: '1',
-            createdAt: '2022-12-15',
-            updatedAt: '2023-01-01'
-          }
-        ]);
-        
-        setMaturityDistribution([
-          { level: 'Level 0', count: 2 },
-          { level: 'Level 1', count: 3 },
-          { level: 'Level 2', count: 4 },
-          { level: 'Level 3', count: 2 },
-          { level: 'Level 4', count: 1 }
-        ]);
+        setError('Failed to load dashboard data. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -125,174 +101,192 @@ const DashboardPage: React.FC = () => {
     fetchDashboardData();
   }, []);
   
+  if (error) {
+    return (
+      <Box>
+        <Heading mb={6}>Dashboard</Heading>
+        <Alert status="error">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
+  
   return (
     <Box>
       <Heading mb={6}>Dashboard</Heading>
       
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={6} mb={8}>
-        <Stat
-          p={4}
-          shadow="md"
-          border="1px"
-          borderColor={borderColor}
-          borderRadius="lg"
-          bg={statBg}
-        >
-          <StatLabel>Maturity Models</StatLabel>
-          <StatNumber>{stats.maturityModels}</StatNumber>
-          <StatHelpText>
-            <Link as={RouterLink} to="/maturity-models" color="blue.500">
-              View all
-            </Link>
-          </StatHelpText>
-        </Stat>
-        
-        <Stat
-          p={4}
-          shadow="md"
-          border="1px"
-          borderColor={borderColor}
-          borderRadius="lg"
-          bg={statBg}
-        >
-          <StatLabel>Services</StatLabel>
-          <StatNumber>{stats.services}</StatNumber>
-          <StatHelpText>
-            <Link as={RouterLink} to="/services" color="blue.500">
-              View all
-            </Link>
-          </StatHelpText>
-        </Stat>
-        
-        <Stat
-          p={4}
-          shadow="md"
-          border="1px"
-          borderColor={borderColor}
-          borderRadius="lg"
-          bg={statBg}
-        >
-          <StatLabel>Activities</StatLabel>
-          <StatNumber>{stats.activities}</StatNumber>
-          <StatHelpText>
-            <Link as={RouterLink} to="/activities" color="blue.500">
-              View all
-            </Link>
-          </StatHelpText>
-        </Stat>
-        
-        <Stat
-          p={4}
-          shadow="md"
-          border="1px"
-          borderColor={borderColor}
-          borderRadius="lg"
-          bg={statBg}
-        >
-          <StatLabel>Journeys</StatLabel>
-          <StatNumber>{stats.journeys}</StatNumber>
-          <StatHelpText>
-            <Link as={RouterLink} to="/journeys" color="blue.500">
-              View all
-            </Link>
-          </StatHelpText>
-        </Stat>
-        
-        <Stat
-          p={4}
-          shadow="md"
-          border="1px"
-          borderColor={borderColor}
-          borderRadius="lg"
-          bg={statBg}
-        >
-          <StatLabel>Active Campaigns</StatLabel>
-          <StatNumber>{stats.activeCampaigns}</StatNumber>
-          <StatHelpText>
-            <Link as={RouterLink} to="/campaigns" color="blue.500">
-              View all
-            </Link>
-          </StatHelpText>
-        </Stat>
-      </SimpleGrid>
-      
-      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8} mb={8}>
-        <Box
-          p={6}
-          shadow="md"
-          border="1px"
-          borderColor={borderColor}
-          borderRadius="lg"
-          bg={statBg}
-        >
-          <Heading size="md" mb={4}>
-            Maturity Level Distribution
-          </Heading>
+      {loading ? (
+        <Text>Loading dashboard data...</Text>
+      ) : (
+        <>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={6} mb={8}>
+            <Stat
+              p={4}
+              shadow="md"
+              border="1px"
+              borderColor={borderColor}
+              borderRadius="lg"
+              bg={statBg}
+            >
+              <StatLabel>Maturity Models</StatLabel>
+              <StatNumber>{stats.maturityModels}</StatNumber>
+              <StatHelpText>
+                <Link as={RouterLink} to="/maturity-models" color="blue.500">
+                  View all
+                </Link>
+              </StatHelpText>
+            </Stat>
+            
+            <Stat
+              p={4}
+              shadow="md"
+              border="1px"
+              borderColor={borderColor}
+              borderRadius="lg"
+              bg={statBg}
+            >
+              <StatLabel>Services</StatLabel>
+              <StatNumber>{stats.services}</StatNumber>
+              <StatHelpText>
+                <Link as={RouterLink} to="/services" color="blue.500">
+                  View all
+                </Link>
+              </StatHelpText>
+            </Stat>
+            
+            <Stat
+              p={4}
+              shadow="md"
+              border="1px"
+              borderColor={borderColor}
+              borderRadius="lg"
+              bg={statBg}
+            >
+              <StatLabel>Activities</StatLabel>
+              <StatNumber>{stats.activities}</StatNumber>
+              <StatHelpText>
+                <Link as={RouterLink} to="/activities" color="blue.500">
+                  View all
+                </Link>
+              </StatHelpText>
+            </Stat>
+            
+            <Stat
+              p={4}
+              shadow="md"
+              border="1px"
+              borderColor={borderColor}
+              borderRadius="lg"
+              bg={statBg}
+            >
+              <StatLabel>Journeys</StatLabel>
+              <StatNumber>{stats.journeys}</StatNumber>
+              <StatHelpText>
+                <Link as={RouterLink} to="/journeys" color="blue.500">
+                  View all
+                </Link>
+              </StatHelpText>
+            </Stat>
+            
+            <Stat
+              p={4}
+              shadow="md"
+              border="1px"
+              borderColor={borderColor}
+              borderRadius="lg"
+              bg={statBg}
+            >
+              <StatLabel>Active Campaigns</StatLabel>
+              <StatNumber>{stats.activeCampaigns}</StatNumber>
+              <StatHelpText>
+                <Link as={RouterLink} to="/campaigns" color="blue.500">
+                  View all
+                </Link>
+              </StatHelpText>
+            </Stat>
+          </SimpleGrid>
           
-          <Box height="300px">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={maturityDistribution}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="level" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="count" fill="#4299E1" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
-        </Box>
-        
-        <Box
-          p={6}
-          shadow="md"
-          border="1px"
-          borderColor={borderColor}
-          borderRadius="lg"
-          bg={statBg}
-        >
-          <Heading size="md" mb={4}>
-            Recent Campaigns
-          </Heading>
-          
-          {recentCampaigns.length > 0 ? (
-            <Stack spacing={4}>
-              {recentCampaigns.map((campaign) => (
-                <Box key={campaign.id} p={4} borderWidth="1px" borderRadius="md">
-                  <Flex justify="space-between" align="center">
-                    <Box>
-                      <Link 
-                        as={RouterLink} 
-                        to={`/campaigns/${campaign.id}`} 
-                        fontWeight="bold"
-                      >
-                        {campaign.name}
-                      </Link>
-                      <Text fontSize="sm">{campaign.description}</Text>
-                    </Box>
-                    <Box textAlign="right">
-                      <Text fontSize="sm">
-                        {new Date(campaign.startDate).toLocaleDateString()} - 
-                        {campaign.endDate 
-                          ? new Date(campaign.endDate).toLocaleDateString()
-                          : ' Ongoing'}
-                      </Text>
-                    </Box>
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8} mb={8}>
+            <Box
+              p={6}
+              shadow="md"
+              border="1px"
+              borderColor={borderColor}
+              borderRadius="lg"
+              bg={statBg}
+            >
+              <Heading size="md" mb={4}>
+                Maturity Level Distribution
+              </Heading>
+              
+              <Box height="300px">
+                {maturityDistribution.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={maturityDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="level" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="#4299E1" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Flex justify="center" align="center" height="100%">
+                    <Text>No maturity data available</Text>
                   </Flex>
-                  <Progress 
-                    mt={2} 
-                    value={75} 
-                    size="sm" 
-                    colorScheme="blue" 
-                  />
-                </Box>
-              ))}
-            </Stack>
-          ) : (
-            <Text>No recent campaigns found.</Text>
-          )}
-        </Box>
-      </SimpleGrid>
+                )}
+              </Box>
+            </Box>
+            
+            <Box
+              p={6}
+              shadow="md"
+              border="1px"
+              borderColor={borderColor}
+              borderRadius="lg"
+              bg={statBg}
+            >
+              <Heading size="md" mb={4}>
+                Recent Campaigns
+              </Heading>
+              
+              {recentCampaigns.length > 0 ? (
+                <Stack spacing={4}>
+                  {recentCampaigns.map((campaign) => (
+                    <Box key={campaign.id} p={4} borderWidth="1px" borderRadius="md">
+                      <Flex justify="space-between" align="center">
+                        <Box>
+                          <Link 
+                            as={RouterLink} 
+                            to={`/campaigns/${campaign.id}`} 
+                            fontWeight="bold"
+                          >
+                            {campaign.name}
+                          </Link>
+                          <Text fontSize="sm">{campaign.description}</Text>
+                        </Box>
+                        <Box textAlign="right">
+                          <Text fontSize="sm">
+                            {new Date(campaign.startDate).toLocaleDateString()} - 
+                            {campaign.endDate 
+                              ? new Date(campaign.endDate).toLocaleDateString()
+                              : ' Ongoing'}
+                          </Text>
+                        </Box>
+                      </Flex>
+                    </Box>
+                  ))}
+                </Stack>
+              ) : (
+                <Text>No recent campaigns found.</Text>
+              )}
+            </Box>
+          </SimpleGrid>
+        </>
+      )}
     </Box>
   );
 };

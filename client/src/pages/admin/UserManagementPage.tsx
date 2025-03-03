@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -15,10 +16,6 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   IconButton,
   useDisclosure,
   Modal,
@@ -39,7 +36,10 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
-  useColorModeValue
+  useColorModeValue,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { FiSearch, FiFilter, FiMoreVertical, FiPlus, FiEdit2, FiTrash2, FiRefreshCw } from 'react-icons/fi';
 import api from '../../api/api';
@@ -52,6 +52,8 @@ const UserManagementPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
@@ -82,41 +84,14 @@ const UserManagementPage: React.FC = () => {
   
   const fetchUsers = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.get<User[]>('/admin/users');
       setUsers(response.data);
+      setFilteredUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
-      // Use mock data for the prototype
-      setUsers([
-        {
-          id: '1',
-          username: 'admin',
-          name: 'Administrator',
-          email: 'admin@example.com',
-          role: UserRole.ADMIN,
-          createdAt: '2023-01-01T00:00:00.000Z',
-          updatedAt: '2023-01-01T00:00:00.000Z'
-        },
-        {
-          id: '2',
-          username: 'editor1',
-          name: 'Editor User',
-          email: 'editor@example.com',
-          role: UserRole.EDITOR,
-          createdAt: '2023-01-15T10:00:00.000Z',
-          updatedAt: '2023-01-15T10:00:00.000Z'
-        },
-        {
-          id: '3',
-          username: 'viewer1',
-          name: 'Viewer User',
-          email: 'viewer@example.com',
-          role: UserRole.VIEWER,
-          createdAt: '2023-01-20T10:00:00.000Z',
-          updatedAt: '2023-01-20T10:00:00.000Z'
-        }
-      ]);
+      setError('Failed to fetch users. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -141,8 +116,7 @@ const UserManagementPage: React.FC = () => {
     if (!selectedUser) return;
     
     try {
-      // In a real app, this would call the API
-      // await api.delete(`/admin/users/${selectedUser.id}`);
+      await api.delete(`/admin/users/${selectedUser.id}`);
       
       setUsers(users.filter(user => user.id !== selectedUser.id));
       
@@ -169,6 +143,8 @@ const UserManagementPage: React.FC = () => {
   
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormLoading(true);
+    
     const formData = new FormData(e.target as HTMLFormElement);
     
     const userData = {
@@ -180,14 +156,15 @@ const UserManagementPage: React.FC = () => {
     };
     
     try {
+      let response: { data: User };
+      
       if (selectedUser) {
         // Update existing user
-        // In a real app, this would call the API
-        // const response = await api.put(`/admin/users/${selectedUser.id}`, userData);
+        response = await api.put(`/admin/users/${selectedUser.id}`, userData);
         
         setUsers(users.map(user => 
           user.id === selectedUser.id 
-            ? { ...user, ...userData, updatedAt: new Date().toISOString() } 
+            ? response.data
             : user
         ));
         
@@ -200,19 +177,9 @@ const UserManagementPage: React.FC = () => {
         });
       } else {
         // Create new user
-        // In a real app, this would call the API
-        // const response = await api.post('/admin/users', userData);
-        const now = new Date().toISOString();
+        response = await api.post('/admin/users', userData);
         
-        setUsers([
-          ...users,
-          {
-            id: `temp-${Date.now()}`,
-            ...userData,
-            createdAt: now,
-            updatedAt: now
-          }
-        ]);
+        setUsers([...users, response.data]);
         
         toast({
           title: 'User created',
@@ -224,15 +191,17 @@ const UserManagementPage: React.FC = () => {
       }
       
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving user:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save user.',
+        description: error.response?.data?.message || 'Failed to save user.',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setFormLoading(false);
     }
   };
   
@@ -249,6 +218,30 @@ const UserManagementPage: React.FC = () => {
       </Badge>
     );
   };
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" p={8}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading users...</Text>
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Box>
+        <Heading mb={6}>User Management</Heading>
+        <Alert status="error" mb={6}>
+          <AlertIcon />
+          {error}
+        </Alert>
+        <Button leftIcon={<FiRefreshCw />} onClick={fetchUsers}>
+          Try Again
+        </Button>
+      </Box>
+    );
+  }
   
   return (
     <Box>
@@ -414,10 +407,10 @@ const UserManagementPage: React.FC = () => {
             </ModalBody>
             
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={onClose} isDisabled={formLoading}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="blue" type="submit" isLoading={formLoading}>
                 {selectedUser ? 'Save Changes' : 'Add User'}
               </Button>
             </ModalFooter>

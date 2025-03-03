@@ -35,7 +35,10 @@ import {
   VStack,
   Divider,
   IconButton,
-  useToast
+  useToast,
+  Spinner,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
@@ -51,6 +54,9 @@ const MaturityModelDetailsPage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedMeasurement, setSelectedMeasurement] = useState<Measurement | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { hasRole } = useAuth();
@@ -60,124 +66,32 @@ const MaturityModelDetailsPage: React.FC = () => {
   const bgColor = useColorModeValue('white', 'gray.700');
   
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // In a real app, these would be actual API endpoints
-        const [modelRes, levelsRes, campaignsRes] = await Promise.all([
-          api.get<MaturityModel>(`/maturity-models/${id}`),
-          api.get<MaturityLevel[]>(`/maturity-models/${id}/levels`),
-          api.get<Campaign[]>(`/maturity-models/${id}/campaigns`)
-        ]);
-        
-        setMaturityModel(modelRes.data);
-        setMaturityLevels(levelsRes.data);
-        setCampaigns(campaignsRes.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // Use mock data for the prototype
-        setMaturityModel({
-          id: '1',
-          name: 'Operational Excellence Maturity Model',
-          owner: 'Administrator',
-          description: 'A model to assess operational excellence capabilities',
-          measurements: [
-            {
-              id: '1',
-              name: 'Has centralized logging',
-              description: 'The service must implement centralized logging for all components',
-              evidenceType: EvidenceType.URL,
-              sampleEvidence: 'https://logs.example.com/dashboard',
-              maturityModelId: '1'
-            },
-            {
-              id: '2',
-              name: 'Has infrastructure metrics published',
-              description: 'The service must publish infrastructure metrics to central monitoring',
-              evidenceType: EvidenceType.URL,
-              sampleEvidence: 'https://metrics.example.com/dashboard',
-              maturityModelId: '1'
-            }
-          ],
-          createdAt: '2023-01-01T00:00:00.000Z',
-          updatedAt: '2023-01-01T00:00:00.000Z'
-        });
-        
-        setMaturityLevels([
-          {
-            id: '1',
-            level: 0,
-            name: 'Level 0',
-            description: 'Initial level, less than 25% implemented',
-            minPercentage: 0,
-            maxPercentage: 24.99,
-            maturityModelId: '1'
-          },
-          {
-            id: '2',
-            level: 1,
-            name: 'Level 1',
-            description: 'Basic level, 25% to 49% implemented',
-            minPercentage: 25,
-            maxPercentage: 49.99,
-            maturityModelId: '1'
-          },
-          {
-            id: '3',
-            level: 2,
-            name: 'Level 2',
-            description: 'Intermediate level, 50% to 74% implemented',
-            minPercentage: 50,
-            maxPercentage: 74.99,
-            maturityModelId: '1'
-          },
-          {
-            id: '4',
-            level: 3,
-            name: 'Level 3',
-            description: 'Advanced level, 75% to 99% implemented',
-            minPercentage: 75,
-            maxPercentage: 99.99,
-            maturityModelId: '1'
-          },
-          {
-            id: '5',
-            level: 4,
-            name: 'Level 4',
-            description: 'Optimized level, 100% implemented',
-            minPercentage: 100,
-            maxPercentage: 100,
-            maturityModelId: '1'
-          }
-        ]);
-        
-        setCampaigns([
-          {
-            id: '1',
-            name: 'Q1 2023 Operational Excellence Assessment',
-            description: 'Quarterly assessment of operational excellence across all services',
-            startDate: '2023-01-01',
-            endDate: '2023-03-31',
-            maturityModelId: '1',
-            createdAt: '2022-12-15T00:00:00.000Z',
-            updatedAt: '2023-01-01T00:00:00.000Z'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchData();
   }, [id]);
   
-  if (loading || !maturityModel) {
-    return (
-      <Box p={4}>
-        <Text>Loading maturity model details...</Text>
-      </Box>
-    );
-  }
+  const fetchData = async () => {
+    if (!id) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [modelRes, levelsRes, campaignsRes] = await Promise.all([
+        api.get<MaturityModel>(`/maturity-models/${id}`),
+        api.get<MaturityLevel[]>(`/maturity-models/${id}/levels`),
+        api.get<Campaign[]>(`/maturity-models/${id}/campaigns`)
+      ]);
+      
+      setMaturityModel(modelRes.data);
+      setMaturityLevels(levelsRes.data);
+      setCampaigns(campaignsRes.data);
+    } catch (error) {
+      console.error('Error fetching maturity model data:', error);
+      setError('Failed to load maturity model details. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const handleAddMeasurement = () => {
     setSelectedMeasurement(null);
@@ -189,28 +103,173 @@ const MaturityModelDetailsPage: React.FC = () => {
     onOpen();
   };
   
-  const handleSaveMeasurement = async (formData: any) => {
-    try {
-      // In a real app, this would submit to the API
-      toast({
-        title: selectedMeasurement ? 'Measurement updated' : 'Measurement added',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      
-      onClose();
-    } catch (error) {
-      console.error('Error saving measurement:', error);
+  const handleSaveMeasurement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) {
       toast({
         title: 'Error',
-        description: 'Failed to save measurement',
+        description: 'Missing model ID',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+      return;
+    }
+    
+    setFormLoading(true);
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    
+    const measurementData = {
+      name: formData.get('name') as string,
+      description: formData.get('description') as string,
+      evidenceType: formData.get('evidenceType') as EvidenceType,
+      sampleEvidence: formData.get('sampleEvidence') as string,
+      maturityModelId: id
+    };
+    
+    try {
+      if (selectedMeasurement) {
+        // Update existing measurement
+        await api.put(`/measurements/${selectedMeasurement.id}`, measurementData);
+        
+        // Update the local state
+        if (maturityModel) {
+          const updatedMeasurements = maturityModel.measurements.map(m => {
+            if (m.id === selectedMeasurement.id) {
+              return {
+                ...m, // Keep all existing properties including maturityModelId
+                name: measurementData.name,
+                description: measurementData.description,
+                evidenceType: measurementData.evidenceType,
+                sampleEvidence: measurementData.sampleEvidence
+              };
+            }
+            return m;
+          });
+          
+          setMaturityModel({
+            ...maturityModel,
+            measurements: updatedMeasurements
+          });
+        }
+        
+        toast({
+          title: 'Measurement updated',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        // Create new measurement
+        const response = await api.post<Measurement>('/measurements', measurementData);
+        
+        // Update the local state
+        if (maturityModel) {
+          setMaturityModel({
+            ...maturityModel,
+            measurements: [...maturityModel.measurements, response.data]
+          });
+        }
+        
+        toast({
+          title: 'Measurement added',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+      
+      onClose();
+    } catch (error: any) {
+      console.error('Error saving measurement:', error);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to save measurement',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setFormLoading(false);
     }
   };
+  
+  const handleDeleteMeasurement = async (measurementId: string) => {
+    if (!window.confirm('Are you sure you want to delete this measurement?')) {
+      return;
+    }
+    
+    setDeleteLoading(true);
+    
+    try {
+      await api.delete(`/measurements/${measurementId}`);
+      
+      // Update the local state
+      if (maturityModel) {
+        const updatedMeasurements = maturityModel.measurements.filter(m => m.id !== measurementId);
+        
+        setMaturityModel({
+          ...maturityModel,
+          measurements: updatedMeasurements
+        });
+      }
+      
+      toast({
+        title: 'Measurement deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error('Error deleting measurement:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete measurement',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+  
+  if (loading) {
+    return (
+      <Box textAlign="center" p={8}>
+        <Spinner size="xl" />
+        <Text mt={4}>Loading maturity model details...</Text>
+      </Box>
+    );
+  }
+  
+  if (error || !maturityModel) {
+    return (
+      <Box>
+        <Flex align="center" mb={4}>
+          <Button
+            as={RouterLink}
+            to="/maturity-models"
+            leftIcon={<FiArrowLeft />}
+            variant="ghost"
+            size="sm"
+          >
+            Back to Maturity Models
+          </Button>
+        </Flex>
+        
+        <Alert status="error" mb={6}>
+          <AlertIcon />
+          {error || "Couldn't load maturity model details"}
+        </Alert>
+        
+        <Button onClick={fetchData}>
+          Try Again
+        </Button>
+      </Box>
+    );
+  }
   
   return (
     <Box>
@@ -254,6 +313,13 @@ const MaturityModelDetailsPage: React.FC = () => {
               leftIcon={<FiEdit2 />}
               colorScheme="blue"
               variant="outline"
+              onClick={() => toast({
+                title: 'Not implemented',
+                description: 'Edit model functionality is not yet implemented',
+                status: 'info',
+                duration: 3000,
+                isClosable: true,
+              })}
             >
               Edit Model
             </Button>
@@ -324,12 +390,15 @@ const MaturityModelDetailsPage: React.FC = () => {
                               mr={2}
                               onClick={() => handleEditMeasurement(measurement)}
                             />
+                            
                             <IconButton
                               aria-label="Delete measurement"
                               icon={<FiTrash2 />}
                               size="sm"
                               variant="ghost"
                               colorScheme="red"
+                              isLoading={deleteLoading}
+                              onClick={() => handleDeleteMeasurement(measurement.id)}
                             />
                           </Flex>
                         </Td>
@@ -356,6 +425,13 @@ const MaturityModelDetailsPage: React.FC = () => {
                   <Button
                     leftIcon={<FiPlus />}
                     colorScheme="blue"
+                    onClick={() => toast({
+                      title: 'Not implemented',
+                      description: 'Add level functionality is not yet implemented',
+                      status: 'info',
+                      duration: 3000,
+                      isClosable: true,
+                    })}
                   >
                     Add Level
                   </Button>
@@ -390,6 +466,13 @@ const MaturityModelDetailsPage: React.FC = () => {
                               size="sm"
                               variant="ghost"
                               mr={2}
+                              onClick={() => toast({
+                                title: 'Not implemented',
+                                description: 'Edit level functionality is not yet implemented',
+                                status: 'info',
+                                duration: 3000,
+                                isClosable: true,
+                              })}
                             />
                             <IconButton
                               aria-label="Delete level"
@@ -397,12 +480,27 @@ const MaturityModelDetailsPage: React.FC = () => {
                               size="sm"
                               variant="ghost"
                               colorScheme="red"
+                              onClick={() => toast({
+                                title: 'Not implemented',
+                                description: 'Delete level functionality is not yet implemented',
+                                status: 'info',
+                                duration: 3000,
+                                isClosable: true,
+                              })}
                             />
                           </Flex>
                         </Td>
                       )}
                     </Tr>
                   ))}
+                  
+                  {maturityLevels.length === 0 && (
+                    <Tr>
+                      <Td colSpan={isAdmin ? 5 : 4} textAlign="center" py={4}>
+                        No maturity levels defined
+                      </Td>
+                    </Tr>
+                  )}
                 </Tbody>
               </Table>
             </TabPanel>
@@ -420,39 +518,50 @@ const MaturityModelDetailsPage: React.FC = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {campaigns.map((campaign) => (
-                    <Tr key={campaign.id}>
-                      <Td fontWeight="medium">{campaign.name}</Td>
-                      <Td>
-                        {new Date(campaign.startDate).toLocaleDateString()} - 
-                        {campaign.endDate 
-                          ? new Date(campaign.endDate).toLocaleDateString()
-                          : ' Ongoing'}
-                      </Td>
-                      <Td>
-                        <Badge colorScheme={
-                          new Date(campaign.endDate || '') < new Date() 
-                            ? 'gray' 
-                            : 'green'
-                        }>
-                          {new Date(campaign.endDate || '') < new Date() 
-                            ? 'Completed' 
-                            : 'Active'}
-                        </Badge>
-                      </Td>
-                      <Td>
-                        <Button
-                          as={RouterLink}
-                          to={`/campaigns/${campaign.id}`}
-                          size="sm"
-                          colorScheme="blue"
-                          variant="outline"
-                        >
-                          View Campaign
-                        </Button>
-                      </Td>
-                    </Tr>
-                  ))}
+                  {campaigns.map((campaign) => {
+                    const today = new Date();
+                    const startDate = new Date(campaign.startDate);
+                    const endDate = campaign.endDate ? new Date(campaign.endDate) : null;
+                    
+                    let status = 'Active';
+                    let colorScheme = 'green';
+                    
+                    if (startDate > today) {
+                      status = 'Upcoming';
+                      colorScheme = 'purple';
+                    } else if (endDate && endDate < today) {
+                      status = 'Completed';
+                      colorScheme = 'gray';
+                    }
+                    
+                    return (
+                      <Tr key={campaign.id}>
+                        <Td fontWeight="medium">{campaign.name}</Td>
+                        <Td>
+                          {new Date(campaign.startDate).toLocaleDateString()} - 
+                          {campaign.endDate 
+                            ? new Date(campaign.endDate).toLocaleDateString()
+                            : ' Ongoing'}
+                        </Td>
+                        <Td>
+                          <Badge colorScheme={colorScheme}>
+                            {status}
+                          </Badge>
+                        </Td>
+                        <Td>
+                          <Button
+                            as={RouterLink}
+                            to={`/campaigns/${campaign.id}`}
+                            size="sm"
+                            colorScheme="blue"
+                            variant="outline"
+                          >
+                            View Campaign
+                          </Button>
+                        </Td>
+                      </Tr>
+                    );
+                  })}
                   
                   {campaigns.length === 0 && (
                     <Tr>
@@ -477,11 +586,7 @@ const MaturityModelDetailsPage: React.FC = () => {
           </ModalHeader>
           <ModalCloseButton />
           
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            handleSaveMeasurement(formData);
-          }}>
+          <form onSubmit={handleSaveMeasurement}>
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl isRequired>
@@ -528,10 +633,10 @@ const MaturityModelDetailsPage: React.FC = () => {
             </ModalBody>
             
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={onClose} isDisabled={formLoading}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="blue" type="submit" isLoading={formLoading}>
                 {selectedMeasurement ? 'Save Changes' : 'Add Measurement'}
               </Button>
             </ModalFooter>
@@ -543,4 +648,3 @@ const MaturityModelDetailsPage: React.FC = () => {
 };
 
 export default MaturityModelDetailsPage;
-
