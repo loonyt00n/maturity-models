@@ -43,23 +43,23 @@ import EvaluationHistory from './EvaluationHistory';
 interface Evaluation {
   id: string;
   status: string;
-  evidenceLocation: string;
-  notes: string;
-  validationReport: string;
+  evidenceLocation: string | null;
+  notes: string | null;
+  validationReport: string | null;
   service: {
     id: string;
     name: string;
-  };
+  } | null;
   measurement: {
     id: string;
     name: string;
     description: string;
     evidenceType: string;
-  };
+  } | null;
   campaign: {
     id: string;
     name: string;
-  };
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +69,8 @@ interface EvaluationDetailsProps {
 }
 
 const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) => {
+  const bgColor = useColorModeValue('white', 'gray.700');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,8 +87,6 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
   const historyTabRef = useRef<number>(3); // Assuming History is the 4th tab (index 3)
   
   const isAdmin = hasRole([UserRole.ADMIN]);
-  const bgColor = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
   
   useEffect(() => {
     fetchEvaluation();
@@ -207,7 +207,9 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
     }
   };
   
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | null | undefined) => {
+    if (!status) return <Badge>Unknown</Badge>;
+    
     const colorSchemes: Record<string, string> = {
       'not_implemented': 'red',
       'evidence_submitted': 'yellow',
@@ -231,7 +233,9 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
     );
   };
   
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string | null | undefined) => {
+    if (!status) return null;
+    
     switch (status) {
       case 'implemented':
         return <FiCheck color="green" />;
@@ -325,9 +329,9 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
         bg={bgColor}
       >
         <Box>
-          <Heading size="md">{evaluation.measurement.name}</Heading>
+          <Heading size="md">{evaluation.measurement?.name || 'Unknown Measurement'}</Heading>
           <Text color="gray.600" mt={1}>
-            {evaluation.service.name} - {evaluation.campaign.name}
+            {evaluation.service?.name || 'Unknown Service'} - {evaluation.campaign?.name || 'Unknown Campaign'}
           </Text>
         </Box>
         
@@ -369,27 +373,27 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
               <Stack spacing={4}>
                 <Box>
                   <Text fontWeight="bold" mb={1}>Service:</Text>
-                  <Text>{evaluation.service.name}</Text>
+                  <Text>{evaluation.service?.name || 'Not available'}</Text>
                 </Box>
                 
                 <Box>
                   <Text fontWeight="bold" mb={1}>Measurement:</Text>
-                  <Text>{evaluation.measurement.name}</Text>
+                  <Text>{evaluation.measurement?.name || 'Not available'}</Text>
                 </Box>
                 
                 <Box>
                   <Text fontWeight="bold" mb={1}>Description:</Text>
-                  <Text>{evaluation.measurement.description}</Text>
+                  <Text>{evaluation.measurement?.description || 'Not available'}</Text>
                 </Box>
                 
                 <Box>
                   <Text fontWeight="bold" mb={1}>Evidence Type:</Text>
-                  <Badge>{evaluation.measurement.evidenceType.toUpperCase()}</Badge>
+                  <Badge>{evaluation.measurement?.evidenceType?.toUpperCase() || 'NOT SPECIFIED'}</Badge>
                 </Box>
                 
                 <Box>
                   <Text fontWeight="bold" mb={1}>Campaign:</Text>
-                  <Text>{evaluation.campaign.name}</Text>
+                  <Text>{evaluation.campaign?.name || 'Not available'}</Text>
                 </Box>
                 
                 <Divider />
@@ -424,12 +428,12 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
                   value={notes} 
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Enter additional notes or context"
-                  rows={5}
+                  rows={5} 
                 />
               </FormControl>
               
               {evaluation.evidenceLocation && (
-                <Box mb={4} p={3} borderWidth="1px" borderRadius="md" bg={useColorModeValue('gray.50', 'gray.700')}>
+                <Box mb={4} p={3} borderWidth="1px" borderRadius="md" bg={borderColor}>
                   <Text fontWeight="bold" mb={1}>Current Evidence:</Text>
                   <Link href={evaluation.evidenceLocation} isExternal color="blue.500">
                     {evaluation.evidenceLocation} <ExternalLinkIcon mx="2px" />
