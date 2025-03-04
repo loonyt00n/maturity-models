@@ -1,4 +1,3 @@
-
 MeasurementEvaluation:
   type: object
   properties:
@@ -27,6 +26,10 @@ MeasurementEvaluation:
       nullable: true
     notes:
       type: string
+      nullable: true
+    validationReport:
+      type: string
+      description: JSON string containing validation results
       nullable: true
     measurement:
       $ref: '#/components/schemas/Measurement'

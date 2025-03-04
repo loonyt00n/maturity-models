@@ -1,10 +1,17 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { MeasurementEvaluation, EvaluationStatus } from '../entities/MeasurementEvaluation';
+import { EvaluationHistory } from '../entities/EvaluationHistory';
 import { Service } from '../entities/Service';
 import { Campaign } from '../entities/Campaign';
 import { Measurement } from '../entities/Measurement';
-import { createEvaluationHistory, getEvaluationHistory } from '../services/evaluationHistory.service';
+import { 
+  createEvaluationHistory, 
+  createEvidenceUpdateHistory, 
+  createNotesUpdateHistory 
+} from '../services/evaluationHistory.service';
+import { EvidenceValidator } from '../services/EvidenceValidator';
+
 
 // Get maturity level distribution
 export const getMaturityLevelDistribution = async (req: Request, res: Response) => {
@@ -89,11 +96,75 @@ export const getEvaluationById = async (req: Request, res: Response) => {
 // Get evaluation history
 export const getEvaluationHistoryById = async (req: Request, res: Response) => {
   try {
-    const history = await getEvaluationHistory(req.params.id);
+    const historyRepository = AppDataSource.getRepository(EvaluationHistory);
+    
+    const history = await historyRepository.find({
+      where: { evaluation: { id: req.params.id } },
+      relations: ['changedBy'],
+      order: { createdAt: 'DESC' }
+    });
+    
     return res.json(history);
   } catch (error) {
     console.error('Error fetching evaluation history:', error);
     return res.status(500).json({ message: 'Error fetching evaluation history' });
+  }
+};
+
+// Update evaluation status (admin only)
+export const updateEvaluationStatus = async (req: Request, res: Response) => {
+  try {
+    const { status, changeReason } = req.body;
+    
+    if (!status || !Object.values(EvaluationStatus).includes(status as EvaluationStatus)) {
+      return res.status(400).json({ message: 'Valid status is required' });
+    }
+    
+    const evaluationRepository = AppDataSource.getRepository(MeasurementEvaluation);
+    const evaluation = await evaluationRepository.findOne({
+      where: { id: req.params.id }
+    });
+    
+    if (!evaluation) {
+      return res.status(404).json({ message: 'Evaluation not found' });
+    }
+    
+    // Store the old status before updating
+    const oldStatus = evaluation.status;
+    
+    // Update the status
+    evaluation.status = status as EvaluationStatus;
+    
+    await evaluationRepository.save(evaluation);
+    
+    // Create a history record, only if the user is defined
+    if (req.user) {
+      await createEvaluationHistory(
+        evaluation,
+        oldStatus,
+        status as EvaluationStatus,
+        req.user,
+        changeReason
+      );
+    }
+    
+    // If status is changed to validating_evidence, trigger validation process
+    if (status === EvaluationStatus.VALIDATING_EVIDENCE) {
+      // Run validation asynchronously to not block the response
+      setTimeout(async () => {
+        try {
+          await EvidenceValidator.validateEvidence(evaluation);
+          console.log(`Validation completed for evaluation ${evaluation.id}`);
+        } catch (error) {
+          console.error(`Error during validation for evaluation ${evaluation.id}:`, error);
+        }
+      }, 100);
+    }
+    
+    return res.json(evaluation);
+  } catch (error) {
+    console.error('Error updating evaluation status:', error);
+    return res.status(500).json({ message: 'Error updating evaluation status' });
   }
 };
 
@@ -115,23 +186,47 @@ export const submitEvidence = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Evaluation not found' });
     }
     
-    // Store old status for history
+    // Store current values for history
+    const previousEvidenceLocation = evaluation.evidenceLocation || '';
+    const previousNotes = evaluation.notes || '';
     const oldStatus = evaluation.status;
     
+    // Update evaluation
     evaluation.evidenceLocation = evidenceLocation;
-    evaluation.notes = notes || evaluation.notes;
+    if (notes !== undefined) evaluation.notes = notes;
     evaluation.status = EvaluationStatus.EVIDENCE_SUBMITTED;
     
     await evaluationRepository.save(evaluation);
     
-    // Create history record if user is available
-    if (req.user) {
+    // Create evidence update history
+    if (req.user && evidenceLocation !== previousEvidenceLocation) {
+      await createEvidenceUpdateHistory(
+        evaluation,
+        previousEvidenceLocation,
+        evidenceLocation,
+        req.user,
+        notes
+      );
+    }
+    
+    // Create notes update history if notes changed
+    if (req.user && notes && notes !== previousNotes) {
+      await createNotesUpdateHistory(
+        evaluation,
+        previousNotes,
+        notes,
+        req.user
+      );
+    }
+    
+    // Create status change history if status changed
+    if (req.user && oldStatus !== evaluation.status) {
       await createEvaluationHistory(
         evaluation,
         oldStatus,
-        EvaluationStatus.EVIDENCE_SUBMITTED,
+        evaluation.status,
         req.user,
-        notes
+        'Evidence submitted'
       );
     }
     
@@ -142,50 +237,6 @@ export const submitEvidence = async (req: Request, res: Response) => {
   }
 };
 
-// Update evaluation status (admin only)
-export const updateEvaluationStatus = async (req: Request, res: Response) => {
-  try {
-    const { status, notes } = req.body;
-    
-    if (!status || !Object.values(EvaluationStatus).includes(status as EvaluationStatus)) {
-      return res.status(400).json({ message: 'Valid status is required' });
-    }
-    
-    const evaluationRepository = AppDataSource.getRepository(MeasurementEvaluation);
-    const evaluation = await evaluationRepository.findOne({
-      where: { id: req.params.id }
-    });
-    
-    if (!evaluation) {
-      return res.status(404).json({ message: 'Evaluation not found' });
-    }
-    
-    // Store the old status before updating
-    const oldStatus = evaluation.status;
-    
-    // Update the status
-    evaluation.status = status as EvaluationStatus;
-    if (notes) evaluation.notes = notes;
-    
-    await evaluationRepository.save(evaluation);
-    
-    // Create a history record, only if the user is defined
-    if (req.user) {
-      await createEvaluationHistory(
-        evaluation,
-        oldStatus,
-        status as EvaluationStatus,
-        req.user,
-        notes
-      );
-    }
-    
-    return res.json(evaluation);
-  } catch (error) {
-    console.error('Error updating evaluation status:', error);
-    return res.status(500).json({ message: 'Error updating evaluation status' });
-  }
-};
 
 // Create or update evaluation for service in campaign
 export const createOrUpdateEvaluation = async (req: Request, res: Response) => {

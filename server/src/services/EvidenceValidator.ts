@@ -2,6 +2,7 @@ import axios from 'axios';
 import { MeasurementEvaluation, EvaluationStatus } from '../entities/MeasurementEvaluation';
 import { AppDataSource } from '../config/database';
 import { EvaluationHistory, ChangeType } from '../entities/EvaluationHistory';
+import { createValidationResultHistory } from './evaluationHistory.service';
 
 /**
  * Service for validating evidence provided in evaluations
@@ -91,17 +92,13 @@ export class EvidenceValidator {
         evaluation.status = EvaluationStatus.EVIDENCE_REJECTED;
       }
 
-      // Record this change in history
-      const historyEntry = new EvaluationHistory();
-      historyEntry.evaluation = evaluation;
-      historyEntry.changeType = ChangeType.VALIDATION_RESULT;
-      historyEntry.previousStatus = previousStatus;
-      historyEntry.newStatus = evaluation.status;
-      historyEntry.validationResults = JSON.stringify(validationReport);
-      historyEntry.changeReason = 'Automated validation process';
-
-      // Save the history entry
-      await AppDataSource.getRepository(EvaluationHistory).save(historyEntry);
+      // Record this change in history using the history service
+      await createValidationResultHistory(
+        evaluation,
+        previousStatus,
+        evaluation.status,
+        JSON.stringify(validationReport)
+      );
     }
 
     // Save the evaluation with updated validation report

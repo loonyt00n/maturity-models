@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Heading,
@@ -77,10 +77,12 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
   const [newStatus, setNewStatus] = useState('');
   const [statusChangeReason, setStatusChangeReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { hasRole } = useAuth();
   const toast = useToast();
+  const historyTabRef = useRef<number>(3); // Assuming History is the 4th tab (index 3)
   
   const isAdmin = hasRole([UserRole.ADMIN]);
   const bgColor = useColorModeValue('white', 'gray.700');
@@ -137,6 +139,11 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
         duration: 3000,
         isClosable: true,
       });
+      
+      // Switch to the history tab to show the new entry
+      setTimeout(() => {
+        setActiveTab(historyTabRef.current);
+      }, 500);
     } catch (error) {
       console.error('Error submitting evidence:', error);
       toast({
@@ -181,6 +188,11 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
         duration: 3000,
         isClosable: true,
       });
+      
+      // Switch to the history tab to show the new entry
+      setTimeout(() => {
+        setActiveTab(historyTabRef.current);
+      }, 500);
     } catch (error) {
       console.error('Error updating status:', error);
       toast({
@@ -338,7 +350,7 @@ const EvaluationDetails: React.FC<EvaluationDetailsProps> = ({ evaluationId }) =
         </Flex>
       </Flex>
       
-      <Tabs variant="enclosed" colorScheme="blue" mb={6}>
+      <Tabs variant="enclosed" colorScheme="blue" mb={6} index={activeTab} onChange={setActiveTab}>
         <TabList>
           <Tab>Details</Tab>
           <Tab>Evidence</Tab>

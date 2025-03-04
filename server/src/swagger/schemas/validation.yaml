@@ -1,0 +1,31 @@
+ValidationReport:
+  type: object
+  properties:
+    valid:
+      type: boolean
+      description: Overall validation result (true if all checks passed)
+    message:
+      type: string
+      description: Summary message about the validation
+    checks:
+      type: array
+      items:
+        $ref: '#/components/schemas/ValidationCheck'
+      description: Detailed results of individual validation checks
+
+ValidationCheck:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Name of the validation check
+      enum:
+        - url_validation
+        - url_content
+        - notes_quality
+    valid:
+      type: boolean
+      description: Result of this specific check
+    message:
+      type: string
+      description: Detailed message about the check result

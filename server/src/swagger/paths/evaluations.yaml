@@ -99,11 +99,13 @@
             properties:
               evidenceLocation:
                 type: string
+                description: URL or location of the evidence
               notes:
                 type: string
+                description: Additional notes or context for the evidence
     responses:
       200:
-        description: Evidence submitted successfully
+        description: Evidence submitted successfully and history entry created
         content:
           application/json:
             schema:
@@ -123,7 +125,7 @@
 
 /evaluations/{id}/status:
   put:
-    summary: Update evaluation status
+    summary: Update evaluation status (admin only)
     tags: [Evaluations]
     security:
       - BearerAuth: []
@@ -146,11 +148,13 @@
               status:
                 type: string
                 enum: [not_implemented, evidence_submitted, validating_evidence, evidence_rejected, implemented]
-              notes:
+                description: New status for the evaluation
+              changeReason:
                 type: string
+                description: Reason for the status change
     responses:
       200:
-        description: Evaluation status updated successfully
+        description: Evaluation status updated and history entry created
         content:
           application/json:
             schema:

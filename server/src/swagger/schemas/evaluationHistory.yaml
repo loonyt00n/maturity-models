@@ -1,14 +1,17 @@
-
 EvaluationHistory:
   type: object
   properties:
     id:
       type: string
       format: uuid
-    evaluationId:
+    changeType:
       type: string
-      format: uuid
-    oldStatus:
+      enum:
+        - status_change
+        - evidence_update
+        - notes_update
+        - validation_result
+    previousStatus:
       type: string
       enum:
         - not_implemented
@@ -16,6 +19,7 @@ EvaluationHistory:
         - validating_evidence
         - evidence_rejected
         - implemented
+      nullable: true
     newStatus:
       type: string
       enum:
@@ -24,14 +28,22 @@ EvaluationHistory:
         - validating_evidence
         - evidence_rejected
         - implemented
+      nullable: true
+    previousValue:
+      type: string
+      nullable: true
+    newValue:
+      type: string
+      nullable: true
     notes:
       type: string
       nullable: true
-    changedById:
+    validationResults:
       type: string
-      format: uuid
+      nullable: true
     changedBy:
       $ref: '#/components/schemas/User'
+      nullable: true
     createdAt:
       type: string
       format: date-time
