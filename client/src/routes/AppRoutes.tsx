@@ -35,6 +35,10 @@ import ServiceDetailsPage from '../pages/details/ServiceDetailsPage';
 import ActivityDetailsPage from '../pages/details/ActivityDetailsPage';
 import JourneyDetailsPage from '../pages/details/JourneyDetailsPage';
 
+// Evaluations Pages
+import ServiceEvaluationsPage from '../pages/evaluations/ServiceEvaluationsPage';
+import EvaluationDetailsPage from '../pages/evaluations/EvaluationDetailsPage';
+
 // Protected route component
 interface ProtectedRouteProps {
   element: React.ReactNode;
@@ -91,6 +95,10 @@ const AppRoutes: React.FC = () => {
         {/* Campaign Routes */}
         <Route path="campaigns" element={<CampaignsPage />} />
         <Route path="campaigns/:id" element={<CampaignDetailsPage />} />
+
+        {/* Evaluations Routes */}
+        <Route path="evaluations" element={<ServiceEvaluationsPage />} />
+        <Route path="evaluations/:id" element={<EvaluationDetailsPage />} />
         
         {/* Admin Routes */}
         <Route 

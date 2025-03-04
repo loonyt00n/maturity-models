@@ -35,18 +35,22 @@ import {
   Icon,
   Spinner,
   Alert,
-  AlertIcon
+  AlertIcon,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FiSearch, FiFilter, FiUpload, FiCheckCircle } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiUpload, FiCheckCircle, FiEye, FiList } from 'react-icons/fi';
 import api from '../../api/api';
-import { ServiceMaturityResult, EvaluationStatus, Measurement } from '../../models';
+import { ServiceMaturityResult, EvaluationStatus, Measurement, MeasurementEvaluation } from '../../models';
 
-// Updated props interface to include campaignId
 interface CampaignServicesTabProps {
   serviceResults: ServiceMaturityResult[];
   getMaturityLevelColor: (level: number) => string;
-  campaignId: string; // Add campaign ID as a required prop
+  campaignId: string;
 }
 
 const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
@@ -61,6 +65,8 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serviceEvaluations, setServiceEvaluations] = useState<Record<string, MeasurementEvaluation[]>>({});
+  const [expandedService, setExpandedService] = useState<string | null>(null);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -157,12 +163,71 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
       });
       
       onClose();
+      
+      // Refresh the evaluations for this service
+      if (expandedService === selectedService.serviceId) {
+        fetchServiceEvaluations(selectedService.serviceId);
+      }
     } catch (error: any) {
       console.error('Error submitting evidence:', error);
       setError(error.response?.data?.message || 'Failed to submit evidence. Please ensure all required fields are provided.');
     } finally {
       setLoading(false);
     }
+  };
+  
+  const fetchServiceEvaluations = async (serviceId: string) => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/services/${serviceId}/campaigns`);
+      const campaignData = response.data.find((c: any) => c.campaign.id === campaignId);
+      
+      if (campaignData && campaignData.evaluations) {
+        setServiceEvaluations({
+          ...serviceEvaluations,
+          [serviceId]: campaignData.evaluations
+        });
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching service evaluations:', error);
+      setLoading(false);
+    }
+  };
+  
+  const toggleServiceExpansion = (serviceId: string) => {
+    if (expandedService === serviceId) {
+      setExpandedService(null);
+    } else {
+      setExpandedService(serviceId);
+      if (!serviceEvaluations[serviceId]) {
+        fetchServiceEvaluations(serviceId);
+      }
+    }
+  };
+  
+  const getStatusBadge = (status: string) => {
+    const colorSchemes: Record<string, string> = {
+      'not_implemented': 'red',
+      'evidence_submitted': 'yellow',
+      'validating_evidence': 'orange',
+      'evidence_rejected': 'red',
+      'implemented': 'green'
+    };
+    
+    const statusLabels: Record<string, string> = {
+      'not_implemented': 'Not Implemented',
+      'evidence_submitted': 'Evidence Submitted',
+      'validating_evidence': 'Validating Evidence',
+      'evidence_rejected': 'Evidence Rejected',
+      'implemented': 'Implemented'
+    };
+    
+    return (
+      <Badge colorScheme={colorSchemes[status]}>
+        {statusLabels[status] || status}
+      </Badge>
+    );
   };
   
   return (
@@ -184,69 +249,101 @@ const CampaignServicesTab: React.FC<CampaignServicesTabProps> = ({
         </Button>
       </Flex>
       
-      <Table variant="simple">
-        <Thead>
-          <Tr>
-            <Th>Service</Th>
-            <Th>Maturity Level</Th>
-            <Th>Progress</Th>
-            <Th>Action</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {filteredServices.map((service) => (
-            <Tr key={service.serviceId}>
-              <Td>
-                <Link 
-                  as={RouterLink} 
-                  to={`/services/${service.serviceId}`} 
-                  color="blue.500" 
-                  fontWeight="medium"
+      <Accordion allowToggle>
+        {filteredServices.map((service) => (
+          <AccordionItem key={service.serviceId}>
+            <h2>
+              <AccordionButton onClick={() => toggleServiceExpansion(service.serviceId)}>
+                <Box flex="1" textAlign="left">
+                  <Text fontWeight="medium">{service.serviceName}</Text>
+                </Box>
+                <Badge 
+                  colorScheme={getMaturityLevelColor(service.maturityLevel)} 
+                  mr={4}
                 >
-                  {service.serviceName}
-                </Link>
-              </Td>
-              <Td>
-                <Badge colorScheme={getMaturityLevelColor(service.maturityLevel)}>
                   Level {service.maturityLevel}
                 </Badge>
-              </Td>
-              <Td>
-                <Flex direction="column">
-                  <Text fontSize="sm" mb={1}>
-                    {service.percentage.toFixed(1)}% Complete
-                  </Text>
-                  <Progress 
-                    value={service.percentage} 
-                    size="sm" 
-                    colorScheme={getMaturityLevelColor(service.maturityLevel)} 
-                  />
-                </Flex>
-              </Td>
-              <Td>
+                <Progress 
+                  value={service.percentage} 
+                  size="sm" 
+                  width="100px"
+                  maxWidth="100px"
+                  colorScheme={getMaturityLevelColor(service.maturityLevel)} 
+                  mr={4}
+                />
+                <Text fontSize="sm" mr={4}>{service.percentage.toFixed(1)}%</Text>
+                <AccordionIcon />
+              </AccordionButton>
+            </h2>
+            <AccordionPanel pb={4}>
+              <Flex justify="space-between" mb={4}>
+                <Heading size="sm">Evaluations</Heading>
                 <Button
                   size="sm"
                   leftIcon={<FiUpload />}
                   colorScheme="blue"
-                  variant="outline"
                   onClick={() => handleEvidenceSubmit(service.serviceId)}
                   isDisabled={measurements.length === 0}
                 >
                   Submit Evidence
                 </Button>
-              </Td>
-            </Tr>
-          ))}
-          
-          {filteredServices.length === 0 && (
-            <Tr>
-              <Td colSpan={4} textAlign="center" py={4}>
-                No services found
-              </Td>
-            </Tr>
-          )}
-        </Tbody>
-      </Table>
+              </Flex>
+              
+              {loading ? (
+                <Flex justify="center" p={4}>
+                  <Spinner />
+                </Flex>
+              ) : serviceEvaluations[service.serviceId] ? (
+                <Table variant="simple" size="sm">
+                  <Thead>
+                    <Tr>
+                      <Th>Measurement</Th>
+                      <Th>Status</Th>
+                      <Th>Evidence</Th>
+                      <Th>Actions</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {serviceEvaluations[service.serviceId].map((evaluation: any) => (
+                      <Tr key={evaluation.id}>
+                        <Td>{evaluation.measurement?.name || 'Unknown Measurement'}</Td>
+                        <Td>{getStatusBadge(evaluation.status)}</Td>
+                        <Td>
+                          {evaluation.evidenceLocation ? (
+                            <Text isTruncated maxWidth="200px">
+                              {evaluation.evidenceLocation}
+                            </Text>
+                          ) : (
+                            <Text color="gray.500">No evidence submitted</Text>
+                          )}
+                        </Td>
+                        <Td>
+                          <Button
+                            as={RouterLink}
+                            to={`/evaluations/${evaluation.id}`}
+                            size="xs"
+                            leftIcon={<FiEye />}
+                            colorScheme="blue"
+                            variant="outline"
+                          >
+                            View Details
+                          </Button>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              ) : (
+                <Text>No evaluations found for this service</Text>
+              )}
+            </AccordionPanel>
+          </AccordionItem>
+        ))}
+        
+        {filteredServices.length === 0 && (
+          <Text textAlign="center" py={4}>No services found</Text>
+        )}
+      </Accordion>
       
       {/* Evidence Submission Modal */}
       {selectedService && (
