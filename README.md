@@ -83,7 +83,7 @@ maturity-models/
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/maturity-models.git
+   git clone https://github.com/loonyt00n/maturity-models.git
    cd maturity-models
    ```
 
