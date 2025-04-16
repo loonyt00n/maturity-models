@@ -1,0 +1,39 @@
+# docker-compose.yml
+services:
+  # Backend API service
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: maturity-models-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=your-secret-key
+    volumes:
+      - server-data:/app/data
+    networks:
+      - app-network
+
+  # Frontend React service
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: maturity-models-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  server-data:
