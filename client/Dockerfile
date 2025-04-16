@@ -25,11 +25,17 @@ RUN if [ -f yarn.lock ]; then \
         npm run build; \
     fi
 
+# Show the contents of the build directory to verify it exists
+RUN ls -la build
+
 # Production environment
 FROM nginx:alpine
 
 # Copy build files from build stage to nginx
 COPY --from=build /app/build /usr/share/nginx/html
+
+# Show the contents of the html directory to verify copying worked
+RUN ls -la /usr/share/nginx/html
 
 # Copy custom nginx config to serve React app correctly
 COPY nginx.conf /etc/nginx/conf.d/default.conf
