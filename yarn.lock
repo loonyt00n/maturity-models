@@ -3042,7 +3042,7 @@ aframe@*, aframe@^1.5:
     load-bmfont "^1.2.3"
     super-animejs "^3.1.0"
     three "npm:super-three@0.173.4"
-    three-bmfont-text dmarcos/three-bmfont-text#eed4878795be9b3e38cf6aec6b903f56acd1f695
+    three-bmfont-text "github:dmarcos/three-bmfont-text#eed4878795be9b3e38cf6aec6b903f56acd1f695"
 
 agent-base@^6.0.2, agent-base@6:
   version "6.0.2"
@@ -6155,6 +6155,11 @@ fs.realpath@^1.0.0:
   resolved "https://registry.npmjs.org/fs.realpath/-/fs.realpath-1.0.0.tgz"
   integrity sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==
 
+fsevents@^2.3.2, fsevents@~2.3.2:
+  version "2.3.3"
+  resolved "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz"
+  integrity sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==
+
 function-bind@^1.1.2:
   version "1.1.2"
   resolved "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz"
@@ -8254,7 +8259,7 @@ math-intrinsics@^1.1.0:
   resolved "https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz"
   integrity sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==
 
-"maturity-models-client@file:C:\\code\\maturity-models-project\\maturity-models\\client":
+"maturity-models-client@file:/Users/kmbl300090/Downloads/demo/maturity-models/client":
   version "0.1.0"
   resolved "file:client"
   dependencies:
@@ -8281,7 +8286,7 @@ math-intrinsics@^1.1.0:
     typescript "^4.9.5"
     web-vitals "^2.1.4"
 
-"maturity-models-server@file:C:\\code\\maturity-models-project\\maturity-models\\server":
+"maturity-models-server@file:/Users/kmbl300090/Downloads/demo/maturity-models/server":
   version "0.1.0"
   resolved "file:server"
   dependencies:
@@ -11643,7 +11648,7 @@ thenify-all@^1.0.0:
   dependencies:
     any-promise "^1.0.0"
 
-three-bmfont-text@dmarcos/three-bmfont-text#eed4878795be9b3e38cf6aec6b903f56acd1f695:
+"three-bmfont-text@github:dmarcos/three-bmfont-text#eed4878795be9b3e38cf6aec6b903f56acd1f695":
   version "3.0.0"
   resolved "git+ssh://git@github.com/dmarcos/three-bmfont-text.git#eed4878795be9b3e38cf6aec6b903f56acd1f695"
   integrity sha512-1tv41kf1bo31dFvQeWyiAcurNg926wslmUQztsjbpIwEIJ7WqAQUOownrbHcAQVYlIdtcP4M+tXYaHzbUEF2GA==

@@ -1,5 +1,5 @@
 # server/Dockerfile
-FROM node:16-alpine
+FROM --platform=linux/amd64 node:16-alpine
 
 # Set working directory
 WORKDIR /app
@@ -8,10 +8,16 @@ WORKDIR /app
 COPY package.json ./
 COPY yarn.lock* ./
 
+RUN cat /etc/ssl/certs/ca-certificates.crt
+
+RUN apk add --no-check-certificate  --update --no-cache python3 && ln -sf python3 /usr/bin/python
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 # Install dependencies - use npm if yarn.lock doesn't exist
 RUN if [ -f yarn.lock ]; then \
+        yarn config set strict-ssl false; \
         yarn install --frozen-lockfile; \
     else \
+        npm config set strict-ssl false; \
         npm install; \
     fi
 
@@ -20,8 +26,10 @@ COPY . .
 
 # Build TypeScript to JavaScript
 RUN if [ -f yarn.lock ]; then \
+        yarn config set strict-ssl false; \
         yarn build; \
     else \
+        npm config set strict-ssl false; \
         npm run build; \
     fi
 

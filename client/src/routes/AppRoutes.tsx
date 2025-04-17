@@ -74,7 +74,7 @@ const AppRoutes: React.FC = () => {
 
       {/* Main App Routes */}
       <Route 
-        path="/" 
+        path="/"
         element={
           <ProtectedRoute element={<MainLayout />} />
         }

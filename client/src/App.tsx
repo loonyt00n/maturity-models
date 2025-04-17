@@ -9,7 +9,7 @@ const App: React.FC = () => {
   return (
     <ChakraProvider theme={theme}>
       <AuthProvider>
-        <Router>
+        <Router basename="/maturity-models">
           <AppRoutes />
         </Router>
       </AuthProvider>
