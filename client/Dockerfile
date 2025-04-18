@@ -2,9 +2,8 @@
 
 # Production environment
 FROM --platform=linux/amd64 nginx:alpine
-
+ENV PUBLIC_URL="/maturity-models"
 COPY build /usr/share/nginx/html
-#ENV PUBLIC_URL "http://localhost:3010/maturity-models"
 # Show the contents of the html directory to verify copying worked
 RUN ls -la /usr/share/nginx/html
 

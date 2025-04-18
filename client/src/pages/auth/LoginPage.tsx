@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(username, password);
-      navigate('/dashboard');
+      navigate('maturity-models/dashboard');
     } catch (error) {
       toast({
         title: 'Login failed',
